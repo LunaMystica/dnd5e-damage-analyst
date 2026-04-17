@@ -4,15 +4,17 @@
   data-tab="weapons"
 >
   {{#if hasEntries}}
-    <div class="da-weapon-summary">
-      {{#if weaponSummary.hasActiveWeapons}}
-        <span><strong>Selected attacks:</strong> {{weaponSummary.attackCount}}</span>
-        <span><strong>Weapons used:</strong> {{weaponSummary.weaponCount}}</span>
-        <span><strong>Combined Formula:</strong> <span class="da-mono">{{weaponSummary.combinedFormula}}</span></span>
-        <span><strong>Total DPR:</strong> {{weaponSummary.dpr}}</span>
-        <span><strong>Total Avg Damage:</strong> {{weaponSummary.avgDamage}}</span>
+    <div class="da-summary">
+      {{#if summary.hasActiveEntries}}
+        <span><strong>Selected count:</strong> {{summary.totalCount}}</span>
+        <span><strong>{{summary.entryLabel}}:</strong> {{summary.entryCount}}</span>
+        <span><strong>Combined Formula:</strong> <span class="da-mono">{{summary.combinedFormula}}</span></span>
+        {{#if summary.showDpr}}
+          <span><strong>Total DPR:</strong> {{summary.dpr}}</span>
+        {{/if}}
+        <span><strong>{{summary.averageLabel}}:</strong> {{summary.totalAverage}}</span>
       {{else}}
-        <span>No weapon attacks selected yet. Set one or more attack counts above 0 to include them.</span>
+        <span>{{summary.emptyMessage}}</span>
       {{/if}}
     </div>
     <div class="da-table-wrap">
@@ -26,7 +28,7 @@
             <th>Hit %</th>
             <th>Crit %</th>
             <th>Avg / hit</th>
-            <th>Attacks</th>
+            <th>Count</th>
             <th>DPR</th>
             <th>Range</th>
           </tr>
@@ -48,12 +50,12 @@
               <td class="da-num">{{this.avgHit}}</td>
               <td>
                 <input
-                  class="da-weapon-attacks"
+                  class="da-entry-count"
                   type="number"
                   min="0"
                   step="1"
-                  value="{{this.attacks}}"
-                  data-item-id="{{this.id}}"
+                  value="{{this.count}}"
+                  data-entry-id="{{this.id}}"
                 >
               </td>
               <td class="da-num da-dpr">{{this.dpr}}</td>

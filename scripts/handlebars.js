@@ -33,6 +33,16 @@ export function registerHandlebarsHelpers() {
         <td class="da-num">—</td>
       {{/if}}
 
+      <td>
+        <input
+          class="da-entry-count"
+          type="number"
+          min="0"
+          step="1"
+          value="{{this.count}}"
+          data-entry-id="{{this.id}}"
+        >
+      </td>
       <td class="da-num da-dpr">{{this.dpr}}</td>
       <td class="da-mono">{{this.minDmg}}–{{this.maxDmg}}</td>
     </tr>
@@ -49,10 +59,18 @@ export function registerHandlebarsHelpers() {
       <td>{{this.activation}}</td>
       <td class="da-type">{{this.healingType}}</td>
       <td class="da-mono">{{this.formula}}</td>
-      <td>—</td>
-      <td>—</td>
       <td class="da-num">{{this.avgHeal}}</td>
-      <td>—</td>
+      <td>
+        <input
+          class="da-entry-count"
+          type="number"
+          min="0"
+          step="1"
+          value="{{this.count}}"
+          data-entry-id="{{this.id}}"
+        >
+      </td>
+      <td class="da-num">{{this.totalAvgHeal}}</td>
       <td class="da-mono">{{this.minHeal}}–{{this.maxHeal}}</td>
     </tr>
   `);

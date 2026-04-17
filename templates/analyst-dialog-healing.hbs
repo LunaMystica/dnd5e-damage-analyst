@@ -4,18 +4,27 @@
   data-tab="healing"
 >
   {{#if hasEntries}}
+    <div class="da-summary">
+      {{#if summary.hasActiveEntries}}
+        <span><strong>Selected count:</strong> {{summary.totalCount}}</span>
+        <span><strong>{{summary.entryLabel}}:</strong> {{summary.entryCount}}</span>
+        <span><strong>Combined Formula:</strong> <span class="da-mono">{{summary.combinedFormula}}</span></span>
+        <span><strong>{{summary.averageLabel}}:</strong> {{summary.totalAverage}}</span>
+      {{else}}
+        <span>{{summary.emptyMessage}}</span>
+      {{/if}}
+    </div>
     <div class="da-table-wrap">
-      <table class="da-table da-table--combat da-table--healing">
+      <table class="da-table da-table--healing">
         <thead>
           <tr>
             <th class="da-col-name">Name</th>
             <th>Use</th>
             <th>Type</th>
             <th>Formula</th>
-            <th></th>
-            <th></th>
-            <th>Average</th>
-            <th></th>
+            <th>Avg / use</th>
+            <th>Count</th>
+            <th>Total Avg</th>
             <th>Range</th>
           </tr>
         </thead>

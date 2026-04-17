@@ -33,6 +33,36 @@ const CATEGORY_TABS = {
     label: "Healing",
   },
 };
+const CATEGORY_SUMMARY_LABELS = {
+  weapons: {
+    entryLabel: "Weapons used",
+    averageLabel: "Total Avg Damage",
+    emptyMessage:
+      "No weapon counts selected yet. Set one or more counts above 0 to include them.",
+    showDpr: true,
+  },
+  cantrips: {
+    entryLabel: "Cantrips used",
+    averageLabel: "Total Avg Damage",
+    emptyMessage:
+      "No cantrip counts selected yet. Set one or more counts above 0 to include them.",
+    showDpr: true,
+  },
+  spells: {
+    entryLabel: "Spells used",
+    averageLabel: "Total Avg Damage",
+    emptyMessage:
+      "No spell counts selected yet. Set one or more counts above 0 to include them.",
+    showDpr: true,
+  },
+  healing: {
+    entryLabel: "Healing entries used",
+    averageLabel: "Total Avg Healing",
+    emptyMessage:
+      "No healing counts selected yet. Set one or more counts above 0 to include them.",
+    showDpr: false,
+  },
+};
 
 export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   static #log(message, data) {
@@ -123,17 +153,8 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {number|null} */
   #saveDCOverride = null;
 
-  /** @type {boolean} */
-  #includeSpells = DEFAULTS.includedSpells;
-
-  /** @type {boolean} */
-  #includeSaveSpells = DEFAULTS.includeSaveSpells;
-
-  /** @type {boolean} */
-  #includeHealing = DEFAULTS.includeHealing;
-
-  /** Extra attack count per actor/item pair for weapon rows */
-  #weaponAttackCounts = {};
+  /** Count per actor/entry pair for row totals */
+  #entryCounts = {};
 
   /** Computed results — set by #compute() */
   #results = { weapons: [], cantrips: [], spells: [], healing: [] };
@@ -196,9 +217,6 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       targetAC: this.#targetAC,
       critMin: this.#critMin,
       saveDCOverride: this.#saveDCOverride,
-      includeSpells: this.#includeSpells,
-      includeSaveSpells: this.#includeSaveSpells,
-      includeHealing: this.#includeHealing,
     });
     this.#compute();
     this.tabGroups.primary ??= this.#getPreferredTab();
@@ -222,9 +240,6 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       targetAC: this.#targetAC,
       critMin: this.#critMin,
       saveDCOverride: this.#saveDCOverride,
-      includeSpells: this.#includeSpells,
-      includeSaveSpells: this.#includeSaveSpells,
-      includeHealing: this.#includeHealing,
       results: this.#results,
       tabs: this._prepareTabs("primary"),
       hasWeapons: this.#results.weapons.length > 0,
@@ -240,18 +255,13 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
     if (!CATEGORY_ORDER.includes(partId)) return baseContext;
 
-    const weaponSummary =
-      partId === "weapons"
-        ? this.#getWeaponSummary(this.#results.weapons)
-        : null;
-
     return {
       ...baseContext,
       category: CATEGORY_TABS[partId],
       entries: this.#results[partId],
       hasEntries: this.#results[partId].length > 0,
       emptyMessage: this.#getEmptyMessage(partId),
-      weaponSummary,
+      summary: this.#getCategorySummary(partId, this.#results[partId]),
       tab: baseContext.tabs[partId],
     };
   }
@@ -272,21 +282,21 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    const { weapons, cantrips, spells, healing } = extractItems(this.#actor, {
-      includeSpells: this.#includeSpells,
-      includeSaveSpells: this.#includeSaveSpells,
-      includeHealing: this.#includeHealing,
-    });
+    const { weapons, cantrips, spells, healing } = extractItems(this.#actor);
 
     this.#results = {
       weapons: weapons.map((d) =>
-        this.#runCalc(d, {
-          attackCount: this.#getWeaponAttackCount(d.id),
-        }),
+        this.#runCalc(d, { count: this.#getEntryCount(d.id) }),
       ),
-      cantrips: cantrips.map((d) => this.#runCalc(d)),
-      spells: spells.map((d) => this.#runCalc(d)),
-      healing: healing.map((d) => this.#runCalc(d)),
+      cantrips: cantrips.map((d) =>
+        this.#runCalc(d, { count: this.#getEntryCount(d.id) }),
+      ),
+      spells: spells.map((d) =>
+        this.#runCalc(d, { count: this.#getEntryCount(d.id) }),
+      ),
+      healing: healing.map((d) =>
+        this.#runCalc(d, { count: this.#getEntryCount(d.id) }),
+      ),
     };
 
     AnalystDialog.#log("#compute completed", {
@@ -306,7 +316,7 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  #runCalc(itemData, { attackCount = 0 } = {}) {
+  #runCalc(itemData, { count = 0 } = {}) {
     const base = {
       id: itemData.id,
       name: itemData.name,
@@ -314,41 +324,48 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       activation: itemData.activation,
       damageType: itemData.damageType,
       formula: itemData.formula,
+      count,
     };
 
     if (itemData.kind === "healing") {
+      const healing = calcHealingItem({
+        formula: itemData.formula,
+      });
+
       return {
         ...base,
         healingType: itemData.healingType,
-        ...calcHealingItem({
-          formula: itemData.formula,
-        }),
+        totalAvgHeal: this.#round2((healing.avgHeal ?? 0) * count),
+        ...healing,
       };
     }
 
     if (itemData.kind === "attack") {
       return {
         ...base,
-        attacks: attackCount,
         ...calcAttackItem({
           formula: itemData.formula,
           attackBonus: itemData.attackBonus,
           targetAC: this.#targetAC,
           critMin: this.#critMin,
-          attackCount,
+          attackCount: count,
         }),
       };
     }
 
     // save spell
+    const save = calcSaveItem({
+      formula: itemData.formula,
+      saveDC: this.#saveDCOverride ?? itemData.saveDC,
+      saveAbility: itemData.saveAbility,
+      halfOnSave: itemData.halfOnSave,
+    });
+
     return {
       ...base,
-      ...calcSaveItem({
-        formula: itemData.formula,
-        saveDC: this.#saveDCOverride ?? itemData.saveDC,
-        saveAbility: itemData.saveAbility,
-        halfOnSave: itemData.halfOnSave,
-      }),
+      ...save,
+      singleUseDpr: save.dpr,
+      dpr: this.#round2((save.dpr ?? 0) * count),
     };
   }
 
@@ -382,22 +399,23 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    if (partId === "weapons") {
-      AnalystDialog.#log("_attachPartListeners binding weapon listeners", {
+    if (CATEGORY_ORDER.includes(partId)) {
+      AnalystDialog.#log("_attachPartListeners binding row count listeners", {
         elementType: htmlElement.constructor?.name ?? null,
+        partId,
       });
 
-      htmlElement.querySelectorAll(".da-weapon-attacks").forEach((input) => {
+      htmlElement.querySelectorAll(".da-entry-count").forEach((input) => {
         input.addEventListener("change", (e) => {
-          const itemId = e.currentTarget?.dataset?.itemId;
-          if (!itemId) return;
+          const entryId = e.currentTarget?.dataset?.entryId;
+          if (!entryId) return;
 
           const parsed = parseInt(e.currentTarget.value, 10);
-          const attackCount = Number.isFinite(parsed)
+          const count = Number.isFinite(parsed)
             ? Math.max(0, parsed)
             : 0;
 
-          this.#setWeaponAttackCount(itemId, attackCount);
+          this.#setEntryCount(entryId, count);
           this.render();
         });
       });
@@ -451,28 +469,6 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
         this.render();
       });
 
-    // Include spells toggle
-    htmlElement
-      .querySelector("#da-include-spells")
-      ?.addEventListener("change", (e) => {
-        this.#includeSpells = e.target.checked;
-        this.render();
-      });
-
-    // Include save spells toggle
-    htmlElement
-      .querySelector("#da-include-save-spells")
-      ?.addEventListener("change", (e) => {
-        this.#includeSaveSpells = e.target.checked;
-        this.render();
-      });
-
-    htmlElement
-      .querySelector("#da-include-healing")
-      ?.addEventListener("change", (e) => {
-        this.#includeHealing = e.target.checked;
-        this.render();
-      });
   }
 
   #autoSizeWidth() {
@@ -504,18 +500,6 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   #getEmptyMessage(partId) {
     if (!this.#actor) return "Select an actor above to begin.";
 
-    if (partId === "healing" && !this.#includeHealing) {
-      return "Healing is hidden by the current filters.";
-    }
-
-    if (
-      ["cantrips", "spells"].includes(partId) &&
-      !this.#includeSpells &&
-      !this.#includeSaveSpells
-    ) {
-      return "Spell entries are hidden by the current filters.";
-    }
-
     switch (partId) {
       case "weapons":
         return "No weapon entries were found for this actor.";
@@ -530,44 +514,62 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  #getWeaponAttackKey(itemId) {
-    return `${this.#actor?.id ?? "none"}:${itemId}`;
+  #getEntryCountKey(entryId) {
+    return `${this.#actor?.id ?? "none"}:${entryId}`;
   }
 
-  #getWeaponAttackCount(itemId) {
-    return this.#weaponAttackCounts[this.#getWeaponAttackKey(itemId)] ?? 0;
+  #getEntryCount(entryId) {
+    return this.#entryCounts[this.#getEntryCountKey(entryId)] ?? 0;
   }
 
-  #setWeaponAttackCount(itemId, attackCount) {
-    this.#weaponAttackCounts[this.#getWeaponAttackKey(itemId)] = attackCount;
+  #setEntryCount(entryId, count) {
+    this.#entryCounts[this.#getEntryCountKey(entryId)] = count;
   }
 
-  #getWeaponSummary(entries) {
-    const activeEntries = entries.filter((entry) => (entry.attacks ?? 0) > 0);
+  #getCategorySummary(partId, entries) {
+    const labels = CATEGORY_SUMMARY_LABELS[partId];
+    const activeEntries = entries.filter((entry) => (entry.count ?? 0) > 0);
 
     const totals = activeEntries.reduce(
       (summary, entry) => {
-        summary.weaponCount += 1;
-        summary.attackCount += entry.attacks ?? 0;
+        summary.entryCount += 1;
+        summary.totalCount += entry.count ?? 0;
         summary.dpr += entry.dpr ?? 0;
-        summary.avgDamage += (entry.avgHit ?? 0) * (entry.attacks ?? 0);
+        summary.totalAverage +=
+          this.#getAveragePerUse(entry) * (entry.count ?? 0);
         return summary;
       },
-      { weaponCount: 0, attackCount: 0, dpr: 0, avgDamage: 0 },
+      { entryCount: 0, totalCount: 0, dpr: 0, totalAverage: 0 },
     );
 
     return {
-      ...totals,
+      entryLabel: labels.entryLabel,
+      averageLabel: labels.averageLabel,
+      emptyMessage: labels.emptyMessage,
+      showDpr: labels.showDpr,
       combinedFormula: summarizeFormulae(
         activeEntries.map((entry) => ({
           formula: entry.formula,
-          count: entry.attacks ?? 0,
+          count: entry.count ?? 0,
         })),
       ),
-      hasActiveWeapons: activeEntries.length > 0,
-      dpr: Math.round(totals.dpr * 100) / 100,
-      avgDamage: Math.round(totals.avgDamage * 100) / 100,
+      hasActiveEntries: activeEntries.length > 0,
+      entryCount: totals.entryCount,
+      totalCount: totals.totalCount,
+      dpr: this.#round2(totals.dpr),
+      totalAverage: this.#round2(totals.totalAverage),
     };
+  }
+
+  #getAveragePerUse(entry) {
+    if (typeof entry.avgHeal === "number") return entry.avgHeal;
+    if (typeof entry.avgHit === "number") return entry.avgHit;
+    if (typeof entry.avgFull === "number") return entry.avgFull;
+    return 0;
+  }
+
+  #round2(n) {
+    return Math.round(n * 100) / 100;
   }
 
   // -------------------------------------------------------------------------

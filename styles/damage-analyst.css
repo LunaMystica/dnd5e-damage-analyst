@@ -81,24 +81,6 @@
   font-size: 0.8rem;
 }
 
-/* Toggles */
-.da-toggles {
-  gap: 16px;
-}
-
-.da-toggle {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  font-weight: normal !important;
-}
-
-.da-toggle input[type="checkbox"] {
-  width: auto;
-  margin: 0;
-}
-
 /* ── Tabs ── */
 .da-dialog .sheet-tabs.tabs {
   display: flex;
@@ -169,7 +151,7 @@
   margin: auto 0;
 }
 
-.da-weapon-summary {
+.da-summary {
   display: flex;
   flex-wrap: wrap;
   gap: 10px 16px;
@@ -181,7 +163,7 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-.da-weapon-summary .da-mono {
+.da-summary .da-mono {
   color: inherit;
 }
 
@@ -344,56 +326,101 @@
   width: 12%;
 }
 
+.da-table--spells th:nth-child(1),
+.da-table--spells td:nth-child(1) {
+  width: 23%;
+}
+
+.da-table--spells th:nth-child(2),
+.da-table--spells td:nth-child(2) {
+  width: 10%;
+}
+
+.da-table--spells th:nth-child(3),
+.da-table--spells td:nth-child(3) {
+  width: 9%;
+}
+
+.da-table--spells th:nth-child(4),
+.da-table--spells td:nth-child(4) {
+  width: 14%;
+}
+
+.da-table--spells th:nth-child(5),
+.da-table--spells td:nth-child(5) {
+  width: 12%;
+}
+
+.da-table--spells th:nth-child(6),
+.da-table--spells td:nth-child(6) {
+  width: 8%;
+}
+
+.da-table--spells th:nth-child(7),
+.da-table--spells td:nth-child(7) {
+  width: 8%;
+}
+
+.da-table--spells th:nth-child(8),
+.da-table--spells td:nth-child(8) {
+  width: 6%;
+}
+
+.da-table--spells th:nth-child(9),
+.da-table--spells td:nth-child(9) {
+  width: 8%;
+}
+
+.da-table--spells th:nth-child(10),
+.da-table--spells td:nth-child(10) {
+  width: 10%;
+}
+
 .da-table--healing th:nth-child(1),
 .da-table--healing td:nth-child(1) {
-  width: 27%;
+  width: 26%;
 }
 
 .da-table--healing th:nth-child(2),
 .da-table--healing td:nth-child(2) {
-  width: 11%;
+  width: 12%;
 }
 
 .da-table--healing th:nth-child(3),
 .da-table--healing td:nth-child(3) {
-  width: 11%;
+  width: 12%;
 }
 
 .da-table--healing th:nth-child(4),
 .da-table--healing td:nth-child(4) {
-  width: 15%;
+  width: 16%;
 }
 
 .da-table--healing th:nth-child(5),
 .da-table--healing td:nth-child(5) {
-  width: 10%;
+ width: 10%;
 }
 
 .da-table--healing th:nth-child(6),
 .da-table--healing td:nth-child(6) {
-  width: 10%;
+  width: 8%;
 }
 
 .da-table--healing th:nth-child(7),
 .da-table--healing td:nth-child(7) {
-  width: 8%;
+  width: 9%;
 }
 
 .da-table--healing th:nth-child(8),
 .da-table--healing td:nth-child(8) {
-  width: 7%;
-}
-
-.da-table--healing th:nth-child(9),
-.da-table--healing td:nth-child(9) {
-  width: 11%;
+  width: 12%;
 }
 
 .da-type {
   text-transform: capitalize;
 }
 
-.da-weapon-attacks {
+.da-entry-count {
   width: 56px;
   min-width: 56px;
   text-align: center;
