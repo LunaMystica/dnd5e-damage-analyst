@@ -65,17 +65,22 @@ function summarizeActivities(item) {
   }));
 }
 
-function getPrimaryAttackActivity(item) {
-  return getActivities(item).find(activity => ATTACK_ACTION_TYPES.has(activity.actionType));
+function getAttackActivities(item) {
+  return getActivities(item).filter(activity => ATTACK_ACTION_TYPES.has(activity.actionType));
 }
 
-function getPrimarySaveActivity(item) {
-  return getActivities(item).find(activity => SAVE_ACTION_TYPES.has(activity.type ?? activity.actionType))
-    ?? getActivities(item).find(activity => SAVE_ACTION_TYPES.has(activity.actionType));
+function getSaveActivities(item) {
+  return getActivities(item).filter(
+    activity =>
+      SAVE_ACTION_TYPES.has(activity.type ?? activity.actionType)
+      || SAVE_ACTION_TYPES.has(activity.actionType),
+  );
 }
 
-function getPrimaryHealActivity(item) {
-  return getActivities(item).find(activity => (activity.type === "heal") || activity.healing?.formula);
+function getHealActivities(item) {
+  return getActivities(item).filter(
+    activity => (activity.type === "heal") || activity.healing?.formula,
+  );
 }
 
 function getActivationType(item, activity = null) {
@@ -103,11 +108,11 @@ function getLegacyActionType(item) {
 }
 
 function getEffectiveAttackActionType(item) {
-  return getPrimaryAttackActivity(item)?.actionType ?? getLegacyActionType(item);
+  return getAttackActivities(item)[0]?.actionType ?? getLegacyActionType(item);
 }
 
 function getEffectiveSaveActionType(item) {
-  const activity = getPrimarySaveActivity(item);
+  const activity = getSaveActivities(item)[0];
   return activity?.type ?? activity?.actionType ?? getLegacyActionType(item);
 }
 
@@ -145,10 +150,14 @@ export function extractItems(actor, {
 
   for (const item of actor.items) {
     const sys = item.system;
+    const allActivities = getActivities(item);
+    const attackActivities = getAttackActivities(item);
+    const saveActivities = getSaveActivities(item);
+    const healActivities = getHealActivities(item);
+    const displayActivityCount = Math.max(allActivities.length, 1);
     const actionType = getLegacyActionType(item);
     const attackActionType = getEffectiveAttackActionType(item);
     const saveActionType = getEffectiveSaveActionType(item);
-    const healActivity = getPrimaryHealActivity(item);
     const baseInfo = {
       id: item.id,
       name: item.name,
@@ -156,7 +165,7 @@ export function extractItems(actor, {
       actionType,
       attackActionType,
       saveActionType,
-      hasHealActivity: Boolean(healActivity),
+      hasHealActivity: healActivities.length > 0,
       level: sys.level ?? 0,
       activationType: sys.activation?.type ?? null,
       damageParts: sys.damage?.parts ?? [],
@@ -171,7 +180,7 @@ export function extractItems(actor, {
 
     // ---- Weapons ----
     if (WEAPON_TYPES.has(item.type)) {
-      if (!ATTACK_ACTION_TYPES.has(attackActionType)) {
+      if (!attackActivities.length && !ATTACK_ACTION_TYPES.has(attackActionType)) {
         debugLog("Skipped weapon: no supported attack activity/action type", {
           ...baseInfo,
           expectedActionTypes: Array.from(ATTACK_ACTION_TYPES),
@@ -179,14 +188,24 @@ export function extractItems(actor, {
         continue;
       }
 
-      const data = extractAttackItem(actor, item, getPrimaryAttackActivity(item));
-      if (data) {
-        weapons.push(data);
-        debugLog("Accepted weapon attack item", {
-          ...baseInfo,
-          formula: data.formula,
-          attackBonus: data.attackBonus,
-        });
+      const extracted =
+        attackActivities.length
+          ? attackActivities.map((activity) =>
+              extractAttackItem(actor, item, activity, displayActivityCount),
+            )
+          : [extractAttackItem(actor, item, null, displayActivityCount)];
+
+      const accepted = extracted.filter(Boolean);
+      if (accepted.length) {
+        weapons.push(...accepted);
+        for (const data of accepted) {
+          debugLog("Accepted weapon attack item", {
+            ...baseInfo,
+            activityId: data.activityId ?? null,
+            formula: data.formula,
+            attackBonus: data.attackBonus,
+          });
+        }
       } else {
         debugLog("Rejected weapon attack item: no usable damage formula", baseInfo);
       }
@@ -199,57 +218,86 @@ export function extractItems(actor, {
     }
 
     const level = sys.level ?? 0;
+    let matchedSpellEntry = false;
 
     // ---- Attack spells / cantrips ----
-    if (includeSpells && ATTACK_ACTION_TYPES.has(attackActionType)) {
-      const data = extractAttackItem(actor, item, getPrimaryAttackActivity(item));
-      if (data) {
-        (level === 0 ? cantrips : spells).push(data);
-        debugLog("Accepted attack spell", {
-          ...baseInfo,
-          bucket: level === 0 ? "cantrips" : "spells",
-          formula: data.formula,
-          attackBonus: data.attackBonus,
-        });
+    if (includeSpells && (attackActivities.length || ATTACK_ACTION_TYPES.has(attackActionType))) {
+      const extracted =
+        attackActivities.length
+          ? attackActivities.map((activity) =>
+              extractAttackItem(actor, item, activity, displayActivityCount),
+            )
+          : [extractAttackItem(actor, item, null, displayActivityCount)];
+
+      const accepted = extracted.filter(Boolean);
+      if (accepted.length) {
+        matchedSpellEntry = true;
+        (level === 0 ? cantrips : spells).push(...accepted);
+        for (const data of accepted) {
+          debugLog("Accepted attack spell", {
+            ...baseInfo,
+            bucket: level === 0 ? "cantrips" : "spells",
+            activityId: data.activityId ?? null,
+            formula: data.formula,
+            attackBonus: data.attackBonus,
+          });
+        }
       } else {
         debugLog("Rejected attack spell: no usable damage formula", baseInfo);
       }
-      continue;
     }
 
     // ---- Save spells ----
-    if (includeSaveSpells && SAVE_ACTION_TYPES.has(saveActionType)) {
-      const data = extractSaveItem(actor, item, getPrimarySaveActivity(item));
-      if (data) {
-        (level === 0 ? cantrips : spells).push(data);
-        debugLog("Accepted save spell", {
-          ...baseInfo,
-          bucket: level === 0 ? "cantrips" : "spells",
-          formula: data.formula,
-          saveDC: data.saveDC,
-          saveAbility: data.saveAbility,
-          halfOnSave: data.halfOnSave,
-        });
+    if (includeSaveSpells && (saveActivities.length || SAVE_ACTION_TYPES.has(saveActionType))) {
+      const extracted =
+        saveActivities.length
+          ? saveActivities.map((activity) =>
+              extractSaveItem(actor, item, activity, displayActivityCount),
+            )
+          : [extractSaveItem(actor, item, null, displayActivityCount)];
+
+      const accepted = extracted.filter(Boolean);
+      if (accepted.length) {
+        matchedSpellEntry = true;
+        (level === 0 ? cantrips : spells).push(...accepted);
+        for (const data of accepted) {
+          debugLog("Accepted save spell", {
+            ...baseInfo,
+            bucket: level === 0 ? "cantrips" : "spells",
+            activityId: data.activityId ?? null,
+            formula: data.formula,
+            saveDC: data.saveDC,
+            saveAbility: data.saveAbility,
+            halfOnSave: data.halfOnSave,
+          });
+        }
       } else {
         debugLog("Rejected save spell: no usable damage formula", baseInfo);
       }
-      continue;
     }
 
-    if (includeHealing && healActivity) {
-      const data = extractHealItem(item, healActivity);
-      if (data) {
-        healing.push(data);
-        debugLog("Accepted healing spell", {
-          ...baseInfo,
-          formula: data.formula,
-          healingType: data.healingType,
-        });
+    if (includeHealing && healActivities.length) {
+      const extracted = healActivities.map((activity) =>
+        extractHealItem(item, activity, displayActivityCount),
+      );
+      const accepted = extracted.filter(Boolean);
+      if (accepted.length) {
+        matchedSpellEntry = true;
+        healing.push(...accepted);
+        for (const data of accepted) {
+          debugLog("Accepted healing spell", {
+            ...baseInfo,
+            activityId: data.activityId ?? null,
+            formula: data.formula,
+            healingType: data.healingType,
+          });
+        }
       } else {
         debugLog("Rejected healing spell: no usable healing formula", baseInfo);
       }
-      continue;
     }
+
+    if (matchedSpellEntry) continue;
 
     debugLog("Skipped spell: filters/action type did not match", {
       ...baseInfo,
@@ -285,7 +333,7 @@ export function getTargetAC(token, fallback = 15) {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function extractAttackItem(actor, item, activity = null) {
+function extractAttackItem(actor, item, activity = null, activityCount = 1) {
   const formula = buildDamageFormula(actor, item, activity);
   if (!formula) {
     debugLog("Attack item missing damage formula", {
@@ -301,8 +349,10 @@ function extractAttackItem(actor, item, activity = null) {
 
   return {
     kind:        "attack",
-    id:          item.id,
-    name:        item.name,
+    id:          getEntryId(item, activity),
+    itemId:      item.id,
+    activityId:  activity?.id ?? activity?._id ?? null,
+    name:        formatEntryName(item, activity, activityCount),
     img:         item.img,
     activation:  formatActivationType(getActivationType(item, activity)),
     damageType:  primaryDamageType(item, activity),
@@ -313,7 +363,7 @@ function extractAttackItem(actor, item, activity = null) {
   };
 }
 
-function extractSaveItem(actor, item, activity = null) {
+function extractSaveItem(actor, item, activity = null, activityCount = 1) {
   const formula = buildDamageFormula(actor, item, activity);
   if (!formula) {
     debugLog("Save item missing damage formula", {
@@ -335,8 +385,10 @@ function extractSaveItem(actor, item, activity = null) {
 
   return {
     kind:       "save",
-    id:         item.id,
-    name:       item.name,
+    id:         getEntryId(item, activity),
+    itemId:     item.id,
+    activityId: activity?.id ?? activity?._id ?? null,
+    name:       formatEntryName(item, activity, activityCount),
     img:        item.img,
     activation: formatActivationType(getActivationType(item, activity)),
     damageType: primaryDamageType(item, activity),
@@ -348,7 +400,7 @@ function extractSaveItem(actor, item, activity = null) {
   };
 }
 
-function extractHealItem(item, activity = null) {
+function extractHealItem(item, activity = null, activityCount = 1) {
   const formula = buildHealingFormula(item.actor ?? null, item, activity);
   if (!formula) {
     debugLog("Healing item missing formula", {
@@ -361,8 +413,10 @@ function extractHealItem(item, activity = null) {
 
   return {
     kind:        "healing",
-    id:          item.id,
-    name:        item.name,
+    id:          getEntryId(item, activity),
+    itemId:      item.id,
+    activityId:  activity?.id ?? activity?._id ?? null,
+    name:        formatEntryName(item, activity, activityCount),
     img:         item.img,
     activation:  formatActivationType(getActivationType(item, activity)),
     healingType: primaryHealingType(activity),
@@ -380,7 +434,7 @@ function buildDamageFormula(actor, item, activity = null) {
 
   const parts = item.system?.damage?.parts ?? [];
   const formulae = parts
-    .map(([f]) => resolveFormula(actor, item, f?.trim()))
+    .map(([f]) => resolveFormula(actor, item, f?.trim(), activity))
     .filter(Boolean);
   if (!formulae.length) {
     debugLog("No non-empty damage parts found", {
@@ -399,6 +453,7 @@ function buildHealingFormula(actor, item, activity = null) {
     actor,
     item,
     activity?.healing?.formula?.trim?.() ?? buildActivityPartFormula(activity?.healing),
+    activity,
   );
   if (formula) return formula;
 
@@ -475,7 +530,9 @@ function getActivityDamageFormulae(actor, item, activity = null) {
 
   const formulae = [];
   if (activity.damage.includeBase && item.system?.damage?.base?.formula) {
-    formulae.push(resolveFormula(actor, item, item.system.damage.base.formula.trim()));
+    formulae.push(
+      resolveFormula(actor, item, item.system.damage.base.formula.trim(), activity),
+    );
   }
 
   for (const part of activity.damage.parts ?? []) {
@@ -483,6 +540,7 @@ function getActivityDamageFormulae(actor, item, activity = null) {
       actor,
       item,
       part.formula?.trim?.() ?? buildActivityPartFormula(part),
+      activity,
     );
     if (formula) formulae.push(formula);
   }
@@ -506,6 +564,24 @@ function parseNumericBonus(rawBonus) {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function getEntryId(item, activity = null) {
+  const activityId = activity?.id ?? activity?._id ?? null;
+  return activityId ? `${item.id}:${activityId}` : item.id;
+}
+
+function formatEntryName(item, activity = null, activityCount = 1) {
+  if (!activity || activityCount <= 1) return item.name;
+
+  const activityName =
+    activity.name?.trim?.()
+    ?? activity.label?.trim?.()
+    ?? activity.id
+    ?? activity._id
+    ?? "";
+
+  return activityName ? `${item.name}: ${activityName}` : item.name;
+}
+
 function dedupeFormulae(formulae) {
   const seen = new Set();
   const deduped = [];
@@ -524,42 +600,42 @@ function normalizeFormula(formula) {
   return String(formula).replace(/\s+/g, "").toLowerCase();
 }
 
-function resolveFormula(actor, item, formula) {
+function resolveFormula(actor, item, formula, activity = null) {
   if (!formula) return "";
 
-  const rollData = getRollData(actor, item);
+  const rollData = getRollData(actor, item, activity);
   let resolved = String(formula).trim();
 
-  resolved = replaceDataPaths(resolved, rollData);
+  resolved = replaceFormulaData(resolved, rollData);
   resolved = evaluateFormulaFragments(resolved);
+  resolved = formatDisplayFormula(resolved);
 
   return resolved;
 }
 
-function getRollData(actor, item) {
-  const actorData = actor?.getRollData?.() ?? {};
-  const itemData = item?.getRollData?.() ?? {};
-  const itemSystem = item?.system ? { item: item.system } : {};
-
-  return foundry.utils.mergeObject(
-    foundry.utils.mergeObject(actorData, itemData, { inplace: false }),
-    itemSystem,
-    { inplace: false },
+function getRollData(actor, item, activity = null) {
+  return (
+    activity?.getRollData?.({ deterministic: true }) ??
+    item?.getRollData?.({ deterministic: true }) ??
+    actor?.getRollData?.({ deterministic: true }) ??
+    {}
   );
 }
 
-function replaceDataPaths(formula, rollData) {
-  const flattened = foundry.utils.flattenObject(rollData);
+function replaceFormulaData(formula, rollData) {
+  const replacer =
+    CONFIG?.Dice?.BasicRoll?.replaceFormulaData ??
+    Roll?.defaultImplementation?.replaceFormulaData;
 
-  return formula.replace(/@([a-zA-Z0-9._-]+)/g, (match, path) => {
-    const value = flattened[path];
-    if (value === undefined || value === null || value === "") return "0";
-    if (typeof value === "number") return String(value);
-    if (typeof value === "boolean") return value ? "1" : "0";
+  if (typeof replacer !== "function") return formula;
 
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? String(numeric) : match;
-  });
+  try {
+    return replacer.call(Roll?.defaultImplementation ?? Roll, formula, rollData, {
+      missing: "0",
+    });
+  } catch {
+    return formula;
+  }
 }
 
 function evaluateFormulaFragments(formula) {
@@ -601,6 +677,13 @@ function safeEvalArithmetic(expression) {
 
 function roundNumber(n) {
   return Math.round(n * 1000) / 1000;
+}
+
+function formatDisplayFormula(formula) {
+  return String(formula)
+    .replace(/\s*([+\-*/])\s*/g, " $1 ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function isProficient(actor, item) {
