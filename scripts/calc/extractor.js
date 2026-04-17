@@ -449,10 +449,15 @@ function buildDamageFormula(actor, item, activity = null) {
 }
 
 function buildHealingFormula(actor, item, activity = null) {
+  const rollData = getRollData(actor, item, activity);
   const formula = resolveFormula(
     actor,
     item,
-    activity?.healing?.formula?.trim?.() ?? buildActivityPartFormula(activity?.healing),
+    getScaledPartFormula(
+      activity?.healing,
+      activity?.healing?.formula?.trim?.() ?? buildActivityPartFormula(activity?.healing),
+      rollData,
+    ),
     activity,
   );
   if (formula) return formula;
@@ -528,10 +533,16 @@ function resolveSaveDC(actor, item, activity = null) {
 function getActivityDamageFormulae(actor, item, activity = null) {
   if (!activity?.damage) return [];
 
+  const rollData = getRollData(actor, item, activity);
   const formulae = [];
   if (activity.damage.includeBase && item.system?.damage?.base?.formula) {
     formulae.push(
-      resolveFormula(actor, item, item.system.damage.base.formula.trim(), activity),
+      resolveFormula(
+        actor,
+        item,
+        getScaledPartFormula(item.system.damage.base, item.system.damage.base.formula.trim(), rollData),
+        activity,
+      ),
     );
   }
 
@@ -539,7 +550,7 @@ function getActivityDamageFormulae(actor, item, activity = null) {
     const formula = resolveFormula(
       actor,
       item,
-      part.formula?.trim?.() ?? buildActivityPartFormula(part),
+      getScaledPartFormula(part, part.formula?.trim?.() ?? buildActivityPartFormula(part), rollData),
       activity,
     );
     if (formula) formulae.push(formula);
@@ -556,6 +567,21 @@ function buildActivityPartFormula(part) {
   if (part.number && part.denomination) formula = `${part.number}d${part.denomination}`;
   if (part.bonus) formula = formula ? `${formula} + ${part.bonus}` : String(part.bonus);
   return formula.trim();
+}
+
+function getScaledPartFormula(part, fallbackFormula = "", rollData = {}) {
+  if (!part) return fallbackFormula?.trim?.() ?? "";
+
+  if (typeof part.scaledFormula === "function") {
+    try {
+      const scaled = part.scaledFormula(rollData?.scaling);
+      if (scaled) return String(scaled).trim();
+    } catch {
+      // Fall through to the unscaled representation below.
+    }
+  }
+
+  return part.formula?.trim?.() ?? fallbackFormula?.trim?.() ?? buildActivityPartFormula(part);
 }
 
 function parseNumericBonus(rawBonus) {
