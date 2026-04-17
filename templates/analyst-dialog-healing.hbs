@@ -1,0 +1,32 @@
+<section
+  class="da-panel tab {{tab.cssClass}}"
+  data-group="primary"
+  data-tab="healing"
+>
+  {{#if hasEntries}}
+    <div class="da-table-wrap">
+      <table class="da-table da-table--combat da-table--healing">
+        <thead>
+          <tr>
+            <th class="da-col-name">Name</th>
+            <th>Use</th>
+            <th>Type</th>
+            <th>Formula</th>
+            <th></th>
+            <th></th>
+            <th>Average</th>
+            <th></th>
+            <th>Range</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each entries}}
+            {{> da-healing-row this}}
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  {{else}}
+    <p class="da-empty">{{emptyMessage}}</p>
+  {{/if}}
+</section>

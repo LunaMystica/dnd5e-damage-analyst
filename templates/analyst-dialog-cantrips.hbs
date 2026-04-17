@@ -1,0 +1,32 @@
+<section
+  class="da-panel tab {{tab.cssClass}}"
+  data-group="primary"
+  data-tab="cantrips"
+>
+  {{#if hasEntries}}
+    <div class="da-table-wrap">
+      <table class="da-table da-table--combat">
+        <thead>
+          <tr>
+            <th class="da-col-name">Name</th>
+            <th>Use</th>
+            <th>Dmg type</th>
+            <th>Formula</th>
+            <th>DC / Hit %</th>
+            <th>Avg (fail)</th>
+            <th>Avg (save)</th>
+            <th>DPR</th>
+            <th>Range</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each entries}}
+            {{> da-spell-row this}}
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  {{else}}
+    <p class="da-empty">{{emptyMessage}}</p>
+  {{/if}}
+</section>

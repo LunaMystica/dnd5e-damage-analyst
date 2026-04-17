@@ -1,0 +1,45 @@
+<div class="da-controls">
+
+  <div class="da-control-row">
+    <label for="da-actor-select">Actor</label>
+    <select id="da-actor-select">
+      <option value="">— none —</option>
+      {{#each actors}}
+        <option value="{{this.id}}" {{#if (eq this.id ../selectedActorId)}}selected{{/if}}>
+          {{this.name}}
+        </option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="da-control-row">
+    <label for="da-target-ac">Target AC</label>
+    <input id="da-target-ac" type="number" min="1" max="40" value="{{targetAC}}">
+
+    <label for="da-crit-min" class="da-label-spaced">Crit on</label>
+    <input id="da-crit-min" type="number" min="1" max="20" value="{{critMin}}">
+    <span class="da-unit">+</span>
+  </div>
+
+  <div class="da-control-row">
+    <label for="da-save-dc-override">Spell DC</label>
+    <input id="da-save-dc-override" type="number" min="1" max="40" value="{{saveDCOverride}}">
+    <span class="da-unit">blank = actor/item</span>
+  </div>
+
+  <div class="da-control-row da-toggles">
+    <label class="da-toggle">
+      <input id="da-include-spells" type="checkbox" {{#if includeSpells}}checked{{/if}}>
+      <span>Attack spells</span>
+    </label>
+    <label class="da-toggle">
+      <input id="da-include-save-spells" type="checkbox" {{#if includeSaveSpells}}checked{{/if}}>
+      <span>Save spells</span>
+    </label>
+    <label class="da-toggle">
+      <input id="da-include-healing" type="checkbox" {{#if includeHealing}}checked{{/if}}>
+      <span>Healing</span>
+    </label>
+  </div>
+
+</div>
