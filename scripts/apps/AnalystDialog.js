@@ -188,7 +188,7 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     if (existing) {
       AnalystDialog.#log("Reusing existing window");
       existing.bringToTop();
-      if (actor) existing.#actor = actor;
+      if (AnalystDialog.#canAccessActor(actor)) existing.#actor = actor;
       existing.#targetAC = getTargetAC(
         game.user.targets.first() ?? null,
         existing.#targetAC,
@@ -595,16 +595,22 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   static #resolveDefaultActor() {
     return (
       AnalystDialog.#getControlledActor()
-      ?? game.user.character
+      ?? AnalystDialog.#getUserCharacter()
       ?? AnalystDialog.#getHoveredNpcActor()
       ?? null
     );
   }
 
+  static #getUserCharacter() {
+    const actor = game.user.character ?? null;
+    return AnalystDialog.#canAccessActor(actor) ? actor : null;
+  }
+
   static #getControlledActor() {
     const controlled = canvas.tokens?.controlled ?? [];
     const token = controlled[0] ?? null;
-    return token?.actor ?? null;
+    const actor = token?.actor ?? null;
+    return AnalystDialog.#canAccessActor(actor) ? actor : null;
   }
 
   static #getHoveredNpcActor() {
@@ -613,13 +619,16 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       ? hover
       : canvas.tokens?.placeables?.find((t) => t.hover);
     const actor = hovered?.actor ?? null;
-    return actor?.type === "npc" ? actor : null;
+    if (actor?.type !== "npc") return null;
+    return AnalystDialog.#canAccessActor(actor) ? actor : null;
   }
 
   static #getSelectableActors(selectedActor = null) {
-    const actors = game.actors.filter((a) => a.type === "character");
+    const actors = game.actors.filter(
+      (a) => (a.type === "character") && AnalystDialog.#canAccessActor(a),
+    );
     const extras = [AnalystDialog.#getHoveredNpcActor(), selectedActor].filter(
-      (a) => a?.type === "npc",
+      (a) => (a?.type === "npc") && AnalystDialog.#canAccessActor(a),
     );
 
     for (const extra of extras) {
@@ -628,5 +637,16 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     return actors;
+  }
+
+  static #canAccessActor(actor) {
+    if (!actor) return false;
+    if (game.user.isGM) return true;
+
+    return (
+      actor.testUserPermission?.(game.user, "OBSERVER") ??
+      actor.isOwner ??
+      false
+    );
   }
 }
