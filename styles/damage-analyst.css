@@ -224,6 +224,29 @@
   word-break: break-word;
 }
 
+.da-open-item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  color: #7cc8ff;
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  cursor: pointer;
+}
+
+.da-open-item:hover,
+.da-open-item:focus-visible {
+  color: #a7ddff;
+  text-decoration: underline;
+  outline: none;
+}
+
 .da-table th.da-col-name {
   display: table-cell;
   overflow: visible;

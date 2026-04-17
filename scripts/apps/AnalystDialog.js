@@ -319,6 +319,8 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   #runCalc(itemData, { count = 0 } = {}) {
     const base = {
       id: itemData.id,
+      itemId: itemData.itemId,
+      activityId: itemData.activityId,
       name: itemData.name,
       img: itemData.img,
       activation: itemData.activation,
@@ -417,6 +419,14 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
           this.#setEntryCount(entryId, count);
           this.render();
+        });
+      });
+
+      htmlElement.querySelectorAll(".da-open-item").forEach((button) => {
+        button.addEventListener("click", (e) => {
+          e.preventDefault();
+          const itemId = e.currentTarget?.dataset?.itemId;
+          this.#openItemSheet(itemId);
         });
       });
 
@@ -524,6 +534,12 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #setEntryCount(entryId, count) {
     this.#entryCounts[this.#getEntryCountKey(entryId)] = count;
+  }
+
+  #openItemSheet(itemId) {
+    if (!itemId || !this.#actor) return;
+    const item = this.#actor.items.get(itemId);
+    item?.sheet?.render?.(true);
   }
 
   #getCategorySummary(partId, entries) {

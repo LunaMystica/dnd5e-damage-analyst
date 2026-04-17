@@ -15,7 +15,12 @@ export function registerHandlebarsHelpers() {
       <td class="da-col-name">
         <div class="da-name-cell">
           {{#if this.img}}<img class="da-icon" src="{{this.img}}" alt="">{{/if}}
-          <span class="da-name-text">{{this.name}}</span>
+          <button
+            type="button"
+            class="da-open-item"
+            data-item-id="{{this.itemId}}"
+            title="Open item"
+          >{{this.name}}</button>
         </div>
       </td>
       <td>{{this.activation}}</td>
@@ -53,7 +58,12 @@ export function registerHandlebarsHelpers() {
       <td class="da-col-name">
         <div class="da-name-cell">
           {{#if this.img}}<img class="da-icon" src="{{this.img}}" alt="">{{/if}}
-          <span class="da-name-text">{{this.name}}</span>
+          <button
+            type="button"
+            class="da-open-item"
+            data-item-id="{{this.itemId}}"
+            title="Open item"
+          >{{this.name}}</button>
         </div>
       </td>
       <td>{{this.activation}}</td>
