@@ -351,7 +351,7 @@
 
 .da-table--spells th:nth-child(1),
 .da-table--spells td:nth-child(1) {
-  width: 23%;
+  width: 21%;
 }
 
 .da-table--spells th:nth-child(2),
@@ -361,42 +361,47 @@
 
 .da-table--spells th:nth-child(3),
 .da-table--spells td:nth-child(3) {
-  width: 9%;
+  width: 8%;
 }
 
 .da-table--spells th:nth-child(4),
 .da-table--spells td:nth-child(4) {
-  width: 14%;
+  width: 13%;
 }
 
 .da-table--spells th:nth-child(5),
 .da-table--spells td:nth-child(5) {
-  width: 12%;
+  width: 11%;
 }
 
 .da-table--spells th:nth-child(6),
 .da-table--spells td:nth-child(6) {
-  width: 8%;
+  width: 6%;
 }
 
 .da-table--spells th:nth-child(7),
 .da-table--spells td:nth-child(7) {
-  width: 8%;
+  width: 7%;
 }
 
 .da-table--spells th:nth-child(8),
 .da-table--spells td:nth-child(8) {
-  width: 6%;
+  width: 7%;
 }
 
 .da-table--spells th:nth-child(9),
 .da-table--spells td:nth-child(9) {
-  width: 8%;
+  width: 5%;
 }
 
 .da-table--spells th:nth-child(10),
 .da-table--spells td:nth-child(10) {
-  width: 10%;
+  width: 5%;
+}
+
+.da-table--spells th:nth-child(11),
+.da-table--spells td:nth-child(11) {
+  width: 7%;
 }
 
 .da-table--healing th:nth-child(1),

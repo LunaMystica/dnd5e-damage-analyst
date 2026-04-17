@@ -30,10 +30,12 @@ export function registerHandlebarsHelpers() {
       {{!-- DC / Hit column --}}
       {{#if (eq this.type "save")}}
         <td>DC {{this.saveDC}} {{this.saveAbility}}</td>
+        <td class="da-num">—</td>
         <td class="da-num">{{this.avgFull}}</td>
         <td class="da-num">{{this.avgSave}}{{#unless this.halfOnSave}} <span class="da-tag">0</span>{{/unless}}</td>
       {{else}}
-        <td>{{this.hitChance}}% / {{this.critChance}}%</td>
+        <td>{{this.hitChance}}%</td>
+        <td>{{this.critChance}}%</td>
         <td class="da-num">{{this.avgHit}}</td>
         <td class="da-num">—</td>
       {{/if}}

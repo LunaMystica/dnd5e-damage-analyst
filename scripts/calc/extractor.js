@@ -35,6 +35,8 @@ import { WEAPON_TYPES, SPELL_TYPES } from "../constants.js";
 const ATTACK_ACTION_TYPES = new Set(["mwak", "rwak", "msak", "rsak"]);
 // Action types that use a saving throw
 const SAVE_ACTION_TYPES   = new Set(["save"]);
+// Activity types that directly roll damage without an attack or save gate
+const DIRECT_DAMAGE_ACTIVITY_TYPES = new Set(["damage"]);
 
 function debugLog(message, data) {
   if (data === undefined) {
@@ -81,6 +83,15 @@ function getHealActivities(item) {
   return getActivities(item).filter(
     activity => (activity.type === "heal") || activity.healing?.formula,
   );
+}
+
+function getDirectDamageActivities(item) {
+  return getActivities(item).filter((activity) => {
+    const type = activity.type ?? activity.actionType;
+    if (!DIRECT_DAMAGE_ACTIVITY_TYPES.has(type)) return false;
+    if (!activity.damage?.parts?.length && !activity.damage?.includeBase) return false;
+    return true;
+  });
 }
 
 function getActivationType(item, activity = null) {
@@ -154,6 +165,7 @@ export function extractItems(actor, {
     const attackActivities = getAttackActivities(item);
     const saveActivities = getSaveActivities(item);
     const healActivities = getHealActivities(item);
+    const damageActivities = getDirectDamageActivities(item);
     const displayActivityCount = Math.max(allActivities.length, 1);
     const actionType = getLegacyActionType(item);
     const attackActionType = getEffectiveAttackActionType(item);
@@ -166,6 +178,7 @@ export function extractItems(actor, {
       attackActionType,
       saveActionType,
       hasHealActivity: healActivities.length > 0,
+      hasDirectDamageActivity: damageActivities.length > 0,
       level: sys.level ?? 0,
       activationType: sys.activation?.type ?? null,
       damageParts: sys.damage?.parts ?? [],
@@ -273,6 +286,29 @@ export function extractItems(actor, {
         }
       } else {
         debugLog("Rejected save spell: no usable damage formula", baseInfo);
+      }
+    }
+
+    // ---- Direct damage activities ----
+    if (includeSpells && damageActivities.length) {
+      const extracted = damageActivities.map((activity) =>
+        extractDamageItem(actor, item, activity, displayActivityCount),
+      );
+
+      const accepted = extracted.filter(Boolean);
+      if (accepted.length) {
+        matchedSpellEntry = true;
+        (level === 0 ? cantrips : spells).push(...accepted);
+        for (const data of accepted) {
+          debugLog("Accepted direct damage spell", {
+            ...baseInfo,
+            bucket: level === 0 ? "cantrips" : "spells",
+            activityId: data.activityId ?? null,
+            formula: data.formula,
+          });
+        }
+      } else {
+        debugLog("Rejected direct damage spell: no usable damage formula", baseInfo);
       }
     }
 
@@ -422,6 +458,32 @@ function extractHealItem(item, activity = null, activityCount = 1) {
     healingType: primaryHealingType(activity),
     formula,
     _item:       item,
+  };
+}
+
+function extractDamageItem(actor, item, activity = null, activityCount = 1) {
+  const formula = buildDamageFormula(actor, item, activity);
+  if (!formula) {
+    debugLog("Direct damage item missing formula", {
+      id: item.id,
+      name: item.name,
+      damageParts: item.system?.damage?.parts ?? [],
+      activity: activity ? summarizeActivity(activity) : null,
+    });
+    return null;
+  }
+
+  return {
+    kind:       "damage",
+    id:         getEntryId(item, activity),
+    itemId:     item.id,
+    activityId: activity?.id ?? activity?._id ?? null,
+    name:       formatEntryName(item, activity, activityCount),
+    img:        item.img,
+    activation: formatActivationType(getActivationType(item, activity)),
+    damageType: primaryDamageType(item, activity),
+    formula,
+    _item:      item,
   };
 }
 

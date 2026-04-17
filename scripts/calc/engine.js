@@ -231,6 +231,33 @@ export function calcHealingItem({ formula }) {
 }
 
 // ---------------------------------------------------------------------------
+// Direct damage activities
+// ---------------------------------------------------------------------------
+
+/**
+ * @param {object} opts
+ * @param {string} opts.formula
+ * @param {number} [opts.useCount=0]
+ * @returns {object}
+ */
+export function calcDamageItem({ formula, useCount = 0 }) {
+  const parsed = parseFormula(formula);
+  const uses = Math.max(0, Number.isFinite(useCount) ? useCount : 0);
+  const avg = avgFromParts(parsed);
+
+  return {
+    type: "damage",
+    uses,
+    avgDamage: round2(avg),
+    singleUseDpr: round2(avg),
+    dpr: round2(avg * uses),
+    minDmg: minFromParts(parsed),
+    maxDmg: maxFromParts(parsed),
+    formula,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
