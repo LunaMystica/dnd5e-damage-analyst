@@ -188,7 +188,7 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     if (existing) {
       AnalystDialog.#log("Reusing existing window");
       existing.bringToTop();
-      if (actor?.type === "npc") existing.#actor = actor;
+      if (actor) existing.#actor = actor;
       existing.#targetAC = getTargetAC(
         game.user.targets.first() ?? null,
         existing.#targetAC,
@@ -593,7 +593,18 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   // -------------------------------------------------------------------------
 
   static #resolveDefaultActor() {
-    return AnalystDialog.#getHoveredNpcActor() ?? null;
+    return (
+      AnalystDialog.#getControlledActor()
+      ?? game.user.character
+      ?? AnalystDialog.#getHoveredNpcActor()
+      ?? null
+    );
+  }
+
+  static #getControlledActor() {
+    const controlled = canvas.tokens?.controlled ?? [];
+    const token = controlled[0] ?? null;
+    return token?.actor ?? null;
   }
 
   static #getHoveredNpcActor() {
