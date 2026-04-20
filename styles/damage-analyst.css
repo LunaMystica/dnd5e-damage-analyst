@@ -144,7 +144,9 @@
 
 .da-table-wrap {
   overflow-x: auto;
+  overflow-y: auto;
   min-height: 0;
+  flex: 1 1 auto;
 }
 
 .da-panel .da-empty {

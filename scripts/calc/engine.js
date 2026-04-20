@@ -181,22 +181,27 @@ export function calcSaveItem({
   targetSaveBonus = 0,
 }) {
   const parsed = parseFormula(formula);
+  const resolvedSaveDC = Number.isFinite(saveDC) ? saveDC : null;
 
   // Probability target FAILS the save (i.e. we deal full damage)
   // failChance = clamp( (saveDC - targetSaveBonus - 1) / 20, 0.05, 0.95 )
-  const failChance = Math.min(0.95, Math.max(0.05,
-    (saveDC - targetSaveBonus - 1) / 20
-  ));
-  const saveChance = 1 - failChance;
+  const failChance = (resolvedSaveDC === null)
+    ? 0
+    : Math.min(0.95, Math.max(0.05,
+      (resolvedSaveDC - targetSaveBonus - 1) / 20
+    ));
+  const saveChance = (resolvedSaveDC === null) ? 0 : (1 - failChance);
 
   const avgFull = avgFromParts(parsed);
   const avgSave = halfOnSave ? avgFull / 2 : 0;
-  const dpr     = failChance * avgFull + saveChance * avgSave;
+  const dpr     = (resolvedSaveDC === null)
+    ? 0
+    : (failChance * avgFull + saveChance * avgSave);
 
   return {
     type:        "save",
     saveAbility: saveAbility?.toUpperCase() ?? "—",
-    saveDC,
+    saveDC:      resolvedSaveDC ?? "—",
     halfOnSave,
     avgFull:     round2(avgFull),
     avgSave:     round2(avgSave),
