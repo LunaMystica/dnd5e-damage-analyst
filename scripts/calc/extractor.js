@@ -744,7 +744,14 @@ function formatEntryName(item, activity = null, activityCount = 1) {
 		activity._id ??
 		'';
 
-	return activityName ? `${item.name}: ${activityName}` : item.name;
+	if (!activityName) return item.name;
+
+	let displayActivity = activityName;
+	if (activityName.toLowerCase().startsWith(item.name.toLowerCase())) {
+		displayActivity = activityName.slice(item.name.length).replace(/^[\s:–\-]+/, '').trim();
+	}
+
+	return displayActivity ? `${item.name}: ${displayActivity}` : item.name;
 }
 
 function dedupeFormulae(formulae) {
