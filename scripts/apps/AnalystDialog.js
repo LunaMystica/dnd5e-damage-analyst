@@ -178,9 +178,11 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Re-open singleton rather than stacking windows */
-  static open() {
+  static open(actor) {
     AnalystDialog.#log("Open requested");
-    const actor = AnalystDialog.#resolveDefaultActor();
+    if (!actor || !AnalystDialog.#canAccessActor(actor)) {
+      actor = AnalystDialog.#resolveDefaultActor();
+    }
 
     const existing = Object.values(ui.windows).find(
       (w) => w instanceof AnalystDialog,

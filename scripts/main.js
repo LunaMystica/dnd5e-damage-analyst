@@ -15,38 +15,26 @@ Hooks.once("init", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Sidebar button
+// Actor sheet header button (AppV2)
 // ---------------------------------------------------------------------------
 
-/**
- * Inject a button into the Actors sidebar header.
- * Targets the [data-tab="actors"] panel's .directory-header.
- */
-Hooks.on("renderActorDirectory", (app, html) => {
-  console.log(`${MODULE_ID} | renderActorDirectory`, {
-    appId: app?.id ?? null,
-    existingButton: Boolean(html.querySelector(`#damage-analyst-sidebar-btn`)),
+Hooks.on("getHeaderControlsActorSheetV2", (_sheet, controls) => {
+  controls.push({
+    icon:   "fa-solid fa-chart-column",
+    label:  MODULE_TITLE,
+    action: "open-damage-analyst",
   });
+});
 
-  // Avoid duplicates on re-render
-  if (html.querySelector(`#damage-analyst-sidebar-btn`)) return;
+Hooks.on("renderActorSheetV2", (app) => {
+  if (app.element.dataset.daWired) return;
+  app.element.dataset.daWired = "1";
 
-  const btn = document.createElement("button");
-  btn.id        = "damage-analyst-sidebar-btn";
-  btn.type      = "button";
-  btn.title     = MODULE_TITLE;
-  btn.innerHTML = `<i class="fa-solid fa-chart-column"></i> ${MODULE_TITLE}`;
-  btn.classList.add("da-sidebar-btn");
-
-  btn.addEventListener("click", () => {
-    console.log(`${MODULE_ID} | sidebar button clicked`);
-    AnalystDialog.open();
-  });
-
-  // Insert before the existing Create Actor button
-  const headerActions = html.querySelector(".header-actions")
-                     ?? html.querySelector(".directory-header");
-  if (headerActions) headerActions.prepend(btn);
+  app.element.addEventListener("click", (e) => {
+    if (!e.target.closest('[data-action="open-damage-analyst"]')) return;
+    e.stopPropagation();
+    AnalystDialog.open(app.document);
+  }, true);
 });
 
 // ---------------------------------------------------------------------------
@@ -65,5 +53,5 @@ Hooks.on("targetToken", (_user, _token, _targeted) => {
 // ---------------------------------------------------------------------------
 
 Hooks.once("ready", () => {
-  console.log(`${MODULE_ID} | Module loaded — click the Actors sidebar button to open.`);
+  console.log(`${MODULE_ID} | Module loaded — click the chart button on any actor sheet to open.`);
 });
