@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E '\\\\.\\(js|hbs|css|json\\)$')",
+      "Bash(xargs grep *)",
+      "Bash(start \"\" \"c:/Users/Luna/Downloads/FoundryVTT-WindowsPortable-13.351/App/Foundry Virtual Tabletop.exe\")"
+    ]
+  }
+}

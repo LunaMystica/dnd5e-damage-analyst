@@ -489,6 +489,21 @@
   font-style: italic;
 }
 
+/* ── Member tabs (group actors) ── */
+.da-hidden {
+  display: none !important;
+}
+
+.da-member-tabs {
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  margin-bottom: 2px;
+}
+
+.da-member-tabs a.active {
+  color: #7cc8ff !important;
+}
+
 /* ── Empty states ── */
 .da-empty {
   padding: 12px;

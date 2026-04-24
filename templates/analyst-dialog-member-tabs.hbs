@@ -1,0 +1,15 @@
+<nav class="da-member-tabs sheet-tabs tabs{{#unless isGroup}} da-hidden{{/unless}}" role="tablist">
+  {{#each groupMembers}}
+    <a
+      class="da-member-tab{{#if this.active}} active{{/if}}"
+      data-action="selectMember"
+      data-member-id="{{this.id}}"
+      role="tab"
+      title="{{this.name}}"
+    >
+      {{#if (eq this.id "all")}}<i class="fa-solid fa-people-group"></i>
+      {{else if this.img}}<img class="da-icon" src="{{this.img}}" alt="">{{/if}}
+      {{this.name}}
+    </a>
+  {{/each}}
+</nav>

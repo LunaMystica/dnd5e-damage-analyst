@@ -102,12 +102,16 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     },
     actions: {
       recompute: AnalystDialog.#onRecompute,
+      selectMember: AnalystDialog.#onSelectMember,
     },
   };
 
   static PARTS = {
     controls: {
       template: `modules/${MODULE_ID}/templates/analyst-dialog-controls.hbs`,
+    },
+    memberTabs: {
+      template: `modules/${MODULE_ID}/templates/analyst-dialog-member-tabs.hbs`,
     },
     tabs: {
       template: "templates/generic/tab-navigation.hbs",
@@ -156,6 +160,9 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Count per actor/entry pair for row totals */
   #entryCounts = {};
 
+  /** Active group member actor ID (null = not a group, or first member) */
+  #activeMemberId = null;
+
   /** Computed results — set by #compute() */
   #results = { weapons: [], cantrips: [], spells: [], healing: [] };
 
@@ -177,6 +184,16 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  get title() {
+    if (this.#actor?.type === "group") {
+      const member = this.#getEffectiveActor();
+      return member
+        ? `Damage Analyst — ${this.#actor.name} › ${member.name}`
+        : `Damage Analyst — ${this.#actor.name}`;
+    }
+    return this.#actor ? `Damage Analyst — ${this.#actor.name}` : "Damage Analyst";
+  }
+
   /** Re-open singleton rather than stacking windows */
   static open(actor) {
     AnalystDialog.#log("Open requested");
@@ -190,7 +207,10 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     if (existing) {
       AnalystDialog.#log("Reusing existing window");
       existing.bringToTop();
-      if (AnalystDialog.#canAccessActor(actor)) existing.#actor = actor;
+      if (AnalystDialog.#canAccessActor(actor)) {
+        if (existing.#actor?.id !== actor?.id) existing.#activeMemberId = null;
+        existing.#actor = actor;
+      }
       existing.#targetAC = getTargetAC(
         game.user.targets.first() ?? null,
         existing.#targetAC,
@@ -220,8 +240,32 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       critMin: this.#critMin,
       saveDCOverride: this.#saveDCOverride,
     });
+    // Resolve active group member before computing
+    if (this.#actor?.type === "group") {
+      const members = this.#getGroupMembers();
+      const isValid =
+        this.#activeMemberId === "all" ||
+        members.some((m) => m.id === this.#activeMemberId);
+      if (members.length && !isValid) this.#activeMemberId = "all";
+    } else {
+      this.#activeMemberId = null;
+    }
+
     this.#compute();
     this.tabGroups.primary ??= this.#getPreferredTab();
+
+    const isGroup = this.#actor?.type === "group";
+    const groupMembers = isGroup
+      ? [
+          { id: "all", name: "All", img: this.#actor.img, active: this.#activeMemberId === "all" },
+          ...this.#getGroupMembers().map((m) => ({
+            id: m.id,
+            name: m.name,
+            img: m.img,
+            active: m.id === this.#activeMemberId,
+          })),
+        ]
+      : [];
 
     const actors = AnalystDialog.#getSelectableActors(this.#actor);
     const context = await super._prepareContext(options);
@@ -244,6 +288,8 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       saveDCOverride: this.#saveDCOverride,
       results: this.#results,
       tabs: this._prepareTabs("primary"),
+      isGroup,
+      groupMembers,
       hasWeapons: this.#results.weapons.length > 0,
       hasCantrips: this.#results.cantrips.length > 0,
       hasSpells: this.#results.spells.length > 0,
@@ -273,18 +319,24 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   // -------------------------------------------------------------------------
 
   #compute() {
+    if (this.#actor?.type === "group" && this.#activeMemberId === "all") {
+      this.#computeAllMembers();
+      return;
+    }
+
+    const actor = this.#getEffectiveActor();
     AnalystDialog.#log("#compute called", {
-      actor: this.#actor?.name ?? null,
-      actorId: this.#actor?.id ?? null,
+      actor: actor?.name ?? null,
+      actorId: actor?.id ?? null,
     });
 
-    if (!this.#actor) {
+    if (!actor) {
       this.#results = { weapons: [], cantrips: [], spells: [], healing: [] };
       AnalystDialog.#warn("#compute aborted: no actor selected");
       return;
     }
 
-    const { weapons, cantrips, spells, healing } = extractItems(this.#actor);
+    const { weapons, cantrips, spells, healing } = extractItems(actor);
 
     this.#results = {
       weapons: weapons.map((d) =>
@@ -302,7 +354,7 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     };
 
     AnalystDialog.#log("#compute completed", {
-      actor: this.#actor.name,
+      actor: actor.name,
       extracted: {
         weapons: weapons.length,
         cantrips: cantrips.length,
@@ -316,6 +368,24 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
         healing: this.#results.healing.length,
       },
     });
+  }
+
+  #computeAllMembers() {
+    const members = this.#getGroupMembers();
+    if (!members.length) {
+      this.#results = { weapons: [], cantrips: [], spells: [], healing: [] };
+      return;
+    }
+    const combined = { weapons: [], cantrips: [], spells: [], healing: [] };
+    for (const member of members) {
+      const { weapons, cantrips, spells, healing } = extractItems(member);
+      const count = (entryId) => this.#entryCounts[`${member.id}:${entryId}`] ?? 0;
+      combined.weapons.push(...weapons.map((d) => this.#runCalc(d, { count: count(d.id) })));
+      combined.cantrips.push(...cantrips.map((d) => this.#runCalc(d, { count: count(d.id) })));
+      combined.spells.push(...spells.map((d) => this.#runCalc(d, { count: count(d.id) })));
+      combined.healing.push(...healing.map((d) => this.#runCalc(d, { count: count(d.id) })));
+    }
+    this.#results = combined;
   }
 
   #runCalc(itemData, { count = 0 } = {}) {
@@ -382,6 +452,15 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /** Delegated from data-action="selectMember" on group member tabs */
+  static #onSelectMember(_event, target) {
+    const memberId = target.dataset.memberId;
+    if (memberId && memberId !== this.#activeMemberId) {
+      this.#activeMemberId = memberId;
+      this.render();
+    }
+  }
+
   /**
    * Capture live form field values before re-render.
    * Called by ApplicationV2 before _prepareContext.
@@ -445,6 +524,7 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     htmlElement
       .querySelector("#da-actor-select")
       ?.addEventListener("change", (e) => {
+        this.#activeMemberId = null;
         this.#actor = game.actors.get(e.target.value) ?? null;
         this.render();
       });
@@ -511,6 +591,7 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #getEmptyMessage(partId) {
     if (!this.#actor) return "Select an actor above to begin.";
+    if (!this.#getEffectiveActor() && this.#activeMemberId !== "all") return "No accessible members found in this group.";
 
     switch (partId) {
       case "weapons":
@@ -527,7 +608,7 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #getEntryCountKey(entryId) {
-    return `${this.#actor?.id ?? "none"}:${entryId}`;
+    return `${this.#getEffectiveActor()?.id ?? "none"}:${entryId}`;
   }
 
   #getEntryCount(entryId) {
@@ -539,9 +620,33 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #openItemSheet(itemId) {
-    if (!itemId || !this.#actor) return;
-    const item = this.#actor.items.get(itemId);
-    item?.sheet?.render?.(true);
+    if (!itemId) return;
+    const actor = this.#getEffectiveActor();
+    if (actor) {
+      actor.items.get(itemId)?.sheet?.render?.(true);
+      return;
+    }
+    for (const member of this.#getGroupMembers()) {
+      const item = member.items.get(itemId);
+      if (item) { item.sheet?.render?.(true); return; }
+    }
+  }
+
+  #getGroupMembers() {
+    if (this.#actor?.type !== "group") return [];
+    const result = [];
+    for (const { actor } of this.#actor.system.members ?? []) {
+      if (actor && AnalystDialog.#canAccessActor(actor)) result.push(actor);
+    }
+    return result;
+  }
+
+  #getEffectiveActor() {
+    if (this.#actor?.type !== "group") return this.#actor;
+    if (this.#activeMemberId === "all") return null;
+    const members = this.#getGroupMembers();
+    if (!members.length) return null;
+    return members.find((m) => m.id === this.#activeMemberId) ?? members[0];
   }
 
   #getCategorySummary(partId, entries) {
@@ -627,7 +732,7 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #getSelectableActors(selectedActor = null) {
     const actors = game.actors.filter(
-      (a) => (a.type === "character") && AnalystDialog.#canAccessActor(a),
+      (a) => (a.type === "character" || a.type === "group") && AnalystDialog.#canAccessActor(a),
     );
     const extras = [AnalystDialog.#getHoveredNpcActor(), selectedActor].filter(
       (a) => (a?.type === "npc") && AnalystDialog.#canAccessActor(a),
