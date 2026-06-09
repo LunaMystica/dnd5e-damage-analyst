@@ -29,7 +29,7 @@
  *   actor.system.attributes.spell.dc
  */
 
-import { WEAPON_TYPES, SPELL_TYPES } from '../constants.js';
+import { WEAPON_TYPES, SPELL_TYPES, FEATURE_TYPES } from '../constants.js';
 
 // Action types that use an attack roll
 const ATTACK_ACTION_TYPES = new Set(['mwak', 'rwak', 'msak', 'rsak']);
@@ -121,6 +121,67 @@ function formatActivationType(type) {
 	return labels[type] ?? type.charAt(0).toUpperCase() + type.slice(1);
 }
 
+function numOrNull(value) {
+	if (value === null || value === undefined || value === '') return null;
+	const n = Number(value);
+	return Number.isFinite(n) ? n : null;
+}
+
+function hasReachProperty(item) {
+	const props = item.system?.properties;
+	if (props instanceof Set) return props.has('rch');
+	if (Array.isArray(props)) return props.includes('rch');
+	if (props && typeof props === 'object') return Boolean(props.rch);
+	return false;
+}
+
+function getRangeData(item, activity = null) {
+	const candidates = [activity?.range, item.system?.range];
+	for (const range of candidates) {
+		if (range && (range.units || range.value != null || range.reach != null))
+			return range;
+	}
+	return null;
+}
+
+function formatRangeUnit(units) {
+	const labels = { ft: 'ft', mi: 'mi', m: 'm', km: 'km' };
+	return labels[units] ?? (units || 'ft');
+}
+
+/**
+ * Human-friendly attack/spell range.
+ *   Self → "Self"; Touch → "Touch".
+ *   5 ft (or 10 ft with the Reach property) → "Melee".
+ *   Anything else → the listed distance, e.g. "60 ft" or "20/60 ft".
+ */
+function formatRange(item, activity = null) {
+	const range = getRangeData(item, activity);
+	const units = String(range?.units ?? '').toLowerCase();
+
+	if (units === 'self') return 'Self';
+	if (units === 'touch') return 'Touch';
+	if (units === 'any') return 'Any';
+	if (units === 'spec' || units === 'special') return 'Special';
+
+	const reach = hasReachProperty(item) || numOrNull(range?.reach) != null;
+	const value = numOrNull(range?.value);
+	const long = numOrNull(range?.long);
+
+	if (value === 5) return 'Melee';
+	if (value === 10 && reach) return 'Melee';
+
+	if (value === null) {
+		// Melee weapons frequently carry no explicit range value.
+		if (WEAPON_TYPES.has(item.type)) return 'Melee';
+		return '—';
+	}
+
+	const unit = formatRangeUnit(units);
+	const base = long && long !== value ? `${value}/${long}` : `${value}`;
+	return `${base} ${unit}`.trim();
+}
+
 function getLegacyActionType(item) {
 	return item.system?.actionType ?? item.system?.activation?.type;
 }
@@ -147,7 +208,7 @@ function getEffectiveSaveActionType(item) {
  * @param {boolean} opts.includeSpells       include attack spells / cantrips
  * @param {boolean} opts.includeSaveSpells   include save-based spells
  * @param {boolean} opts.includeHealing      include healing spells
- * @returns {{ weapons: ItemData[], cantrips: ItemData[], spells: ItemData[], healing: ItemData[] }}
+ * @returns {{ weapons: ItemData[], cantrips: ItemData[], spells: ItemData[], healing: ItemData[], features: ItemData[] }}
  */
 export function extractItems(
 	actor,
@@ -161,6 +222,7 @@ export function extractItems(
 	const cantrips = [];
 	const spells = [];
 	const healing = [];
+	const features = [];
 
 	debugLog('Starting item extraction', {
 		actor: actor?.name ?? '(none)',
@@ -250,6 +312,63 @@ export function extractItems(
 					baseInfo,
 				);
 			}
+			continue;
+		}
+
+		// ---- Features (feats / class & monster actions) ----
+		if (FEATURE_TYPES.has(item.type)) {
+			// Attack-based features
+			if (
+				attackActivities.length ||
+				ATTACK_ACTION_TYPES.has(attackActionType)
+			) {
+				const extracted = attackActivities.length
+					? attackActivities.map((activity) =>
+							extractAttackItem(actor, item, activity, displayActivityCount),
+						)
+					: [extractAttackItem(actor, item, null, displayActivityCount)];
+				features.push(...extracted.filter(Boolean));
+			}
+
+			// Save-based features
+			if (
+				saveActivities.length ||
+				SAVE_ACTION_TYPES.has(saveActionType)
+			) {
+				const extracted = saveActivities.length
+					? saveActivities.map((activity) =>
+							extractSaveItem(actor, item, activity, displayActivityCount),
+						)
+					: [extractSaveItem(actor, item, null, displayActivityCount)];
+				features.push(...extracted.filter(Boolean));
+			}
+
+			// Direct damage features
+			if (damageActivities.length) {
+				features.push(
+					...damageActivities
+						.map((activity) =>
+							extractDamageItem(actor, item, activity, displayActivityCount),
+						)
+						.filter(Boolean),
+				);
+			}
+
+			// Healing features go to the Healing tab for consistency with spells
+			if (includeHealing && healActivities.length) {
+				healing.push(
+					...healActivities
+						.map((activity) =>
+							extractHealItem(item, activity, displayActivityCount),
+						)
+						.filter(Boolean),
+				);
+			}
+
+			debugLog('Processed feature item', {
+				...baseInfo,
+				featureEntries: features.length,
+			});
 			continue;
 		}
 
@@ -405,9 +524,10 @@ export function extractItems(
 		cantrips: cantrips.length,
 		spells: spells.length,
 		healing: healing.length,
+		features: features.length,
 	});
 
-	return { weapons, cantrips, spells, healing };
+	return { weapons, cantrips, spells, healing, features };
 }
 
 /**
@@ -444,6 +564,8 @@ function extractAttackItem(actor, item, activity = null, activityCount = 1) {
 		itemId: item.id,
 		activityId: activity?.id ?? activity?._id ?? null,
 		name: formatEntryName(item, activity, activityCount),
+		nameFull: formatEntryNameFull(item, activity),
+		range: formatRange(item, activity),
 		img: item.img,
 		activation: formatActivationType(getActivationType(item, activity)),
 		damageType: primaryDamageType(item, activity),
@@ -480,6 +602,8 @@ function extractSaveItem(actor, item, activity = null, activityCount = 1) {
 		itemId: item.id,
 		activityId: activity?.id ?? activity?._id ?? null,
 		name: formatEntryName(item, activity, activityCount),
+		nameFull: formatEntryNameFull(item, activity),
+		range: formatRange(item, activity),
 		img: item.img,
 		activation: formatActivationType(getActivationType(item, activity)),
 		damageType: primaryDamageType(item, activity),
@@ -508,6 +632,8 @@ function extractHealItem(item, activity = null, activityCount = 1) {
 		itemId: item.id,
 		activityId: activity?.id ?? activity?._id ?? null,
 		name: formatEntryName(item, activity, activityCount),
+		nameFull: formatEntryNameFull(item, activity),
+		range: formatRange(item, activity),
 		img: item.img,
 		activation: formatActivationType(getActivationType(item, activity)),
 		healingType: primaryHealingType(activity),
@@ -534,6 +660,8 @@ function extractDamageItem(actor, item, activity = null, activityCount = 1) {
 		itemId: item.id,
 		activityId: activity?.id ?? activity?._id ?? null,
 		name: formatEntryName(item, activity, activityCount),
+		nameFull: formatEntryNameFull(item, activity),
+		range: formatRange(item, activity),
 		img: item.img,
 		activation: formatActivationType(getActivationType(item, activity)),
 		damageType: primaryDamageType(item, activity),
@@ -734,24 +862,31 @@ function getEntryId(item, activity = null) {
 	return activityId ? `${item.id}:${activityId}` : item.id;
 }
 
+function activitySuffix(item, activity) {
+	const activityName =
+		activity?.name?.trim?.() ?? activity?.label?.trim?.() ?? '';
+	if (!activityName) return '';
+
+	if (activityName.toLowerCase().startsWith(item.name.toLowerCase())) {
+		return activityName
+			.slice(item.name.length)
+			.replace(/^[\s:–\-]+/, '')
+			.trim();
+	}
+	return activityName;
+}
+
+/** Default name: only distinguishes the activity when an item has several. */
 function formatEntryName(item, activity = null, activityCount = 1) {
 	if (!activity || activityCount <= 1) return item.name;
+	const suffix = activitySuffix(item, activity);
+	return suffix ? `${item.name}: ${suffix}` : item.name;
+}
 
-	const activityName =
-		activity.name?.trim?.() ??
-		activity.label?.trim?.() ??
-		activity.id ??
-		activity._id ??
-		'';
-
-	if (!activityName) return item.name;
-
-	let displayActivity = activityName;
-	if (activityName.toLowerCase().startsWith(item.name.toLowerCase())) {
-		displayActivity = activityName.slice(item.name.length).replace(/^[\s:–\-]+/, '').trim();
-	}
-
-	return displayActivity ? `${item.name}: ${displayActivity}` : item.name;
+/** Name that always appends the activity, regardless of activity count. */
+function formatEntryNameFull(item, activity = null) {
+	const suffix = activity ? activitySuffix(item, activity) : '';
+	return suffix ? `${item.name}: ${suffix}` : item.name;
 }
 
 function dedupeFormulae(formulae) {

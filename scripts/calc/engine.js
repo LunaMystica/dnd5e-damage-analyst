@@ -120,6 +120,7 @@ export function maxFromParts({ diceParts, flat }) {
  * @param {number}   opts.targetAC    — target's armour class
  * @param {number}   opts.critMin     — minimum d20 face for a crit (default 20)
  * @param {number}   [opts.attackCount=0] — number of times this attack is made per round
+ * @param {boolean}  [opts.forceCrit=false] — treat every attack as a guaranteed crit
  * @returns {AttackResult}
  */
 export function calcAttackItem({
@@ -128,12 +129,15 @@ export function calcAttackItem({
   targetAC,
   critMin = 20,
   attackCount = 0,
+  forceCrit = false,
 }) {
   const parsed = parseFormula(formula);
   const attacks = Math.max(0, Number.isFinite(attackCount) ? attackCount : 0);
 
-  const hitChance  = Math.min(0.95, Math.max(0.05, (21 - (targetAC - attackBonus)) / 20));
-  const critChance = (21 - critMin) / 20;
+  const hitChance  = forceCrit
+    ? 0
+    : Math.min(0.95, Math.max(0.05, (21 - (targetAC - attackBonus)) / 20));
+  const critChance = forceCrit ? 1 : (21 - critMin) / 20;
   const missChance = 1 - hitChance - critChance;   // guaranteed hits always hit
 
   const avgHit  = avgFromParts(parsed);
@@ -154,6 +158,7 @@ export function calcAttackItem({
     dpr:         round2(dpr),
     hitChance:   round2(hitChance * 100),   // percent
     critChance:  round2(critChance * 100),
+    forceCrit,
     minDmg:      minFromParts(parsed),
     maxDmg:      maxFromParts(parsed),
     formula,

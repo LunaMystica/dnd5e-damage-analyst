@@ -4,25 +4,14 @@
   data-tab="cantrips"
 >
   {{#if hasEntries}}
-    <div class="da-summary">
-      {{#if summary.hasActiveEntries}}
-        <span><strong>Selected count:</strong> {{summary.totalCount}}</span>
-        <span><strong>{{summary.entryLabel}}:</strong> {{summary.entryCount}}</span>
-        <span><strong>Combined Formula:</strong> <span class="da-mono">{{summary.combinedFormula}}</span></span>
-        {{#if summary.showDpr}}
-          <span><strong>Total DPR:</strong> {{summary.dpr}}</span>
-        {{/if}}
-        <span><strong>{{summary.averageLabel}}:</strong> {{summary.totalAverage}}</span>
-      {{else}}
-        <span>{{summary.emptyMessage}}</span>
-      {{/if}}
-    </div>
+    {{> da-summary summary}}
     <div class="da-table-wrap">
       <table class="da-table da-table--spells">
         <thead>
           <tr>
             <th class="da-col-name">Name</th>
             <th>Use</th>
+            <th>Range</th>
             <th>Dmg type</th>
             <th>Formula</th>
             <th>DC / Hit %</th>
@@ -31,12 +20,12 @@
             <th>Avg (save)</th>
             <th>Count</th>
             <th>DPR</th>
-            <th>Range</th>
+            <th>Min–Max</th>
           </tr>
         </thead>
         <tbody>
           {{#each entries}}
-            {{> da-spell-row this}}
+            {{> da-spell-row this showOwner=../showOwner}}
           {{/each}}
         </tbody>
       </table>

@@ -6,8 +6,9 @@ export const MODULE_TITLE = "Damage Analyst";
 export const SIDEBAR_BUTTON_ID = "damage-analyst-open";
 
 // Item type groupings
-export const WEAPON_TYPES = new Set(["weapon"]);
-export const SPELL_TYPES  = new Set(["spell"]);
+export const WEAPON_TYPES  = new Set(["weapon"]);
+export const SPELL_TYPES   = new Set(["spell"]);
+export const FEATURE_TYPES = new Set(["feat"]);
 
 // dnd5e spell activation types that deal damage via an attack roll
 export const ATTACK_ACTIVATIONS = new Set(["action", "bonus", "legendary", "lair"]);

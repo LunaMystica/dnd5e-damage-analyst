@@ -4,25 +4,14 @@
   data-tab="weapons"
 >
   {{#if hasEntries}}
-    <div class="da-summary">
-      {{#if summary.hasActiveEntries}}
-        <span><strong>Selected count:</strong> {{summary.totalCount}}</span>
-        <span><strong>{{summary.entryLabel}}:</strong> {{summary.entryCount}}</span>
-        <span><strong>Combined Formula:</strong> <span class="da-mono">{{summary.combinedFormula}}</span></span>
-        {{#if summary.showDpr}}
-          <span><strong>Total DPR:</strong> {{summary.dpr}}</span>
-        {{/if}}
-        <span><strong>{{summary.averageLabel}}:</strong> {{summary.totalAverage}}</span>
-      {{else}}
-        <span>{{summary.emptyMessage}}</span>
-      {{/if}}
-    </div>
+    {{> da-summary summary}}
     <div class="da-table-wrap">
       <table class="da-table da-table--weapons">
         <thead>
           <tr>
             <th class="da-col-name">Name</th>
             <th>Use</th>
+            <th>Range</th>
             <th>Dmg type</th>
             <th>Formula</th>
             <th>Hit %</th>
@@ -30,41 +19,23 @@
             <th>Avg / hit</th>
             <th>Count</th>
             <th>DPR</th>
-            <th>Range</th>
+            <th>Min–Max</th>
           </tr>
         </thead>
         <tbody>
           {{#each entries}}
-            <tr>
-              <td class="da-col-name">
-                <div class="da-name-cell">
-                  {{#if this.img}}<img class="da-icon" src="{{this.img}}" alt="">{{/if}}
-                  <button
-                    type="button"
-                    class="da-open-item"
-                    data-item-id="{{this.itemId}}"
-                    title="Open item"
-                  >{{this.name}}</button>
-                </div>
-              </td>
+            <tr class="{{#if this.count}}da-row--active{{/if}}">
+              {{> da-entry-name this showOwner=../showOwner}}
               <td>{{this.activation}}</td>
+              <td class="da-range-dist">{{this.range}}</td>
               <td class="da-type">{{this.damageType}}</td>
               <td class="da-mono">{{this.formula}}</td>
               <td>{{this.hitChance}}%</td>
-              <td>{{this.critChance}}%</td>
+              <td>{{#if this.forceCrit}}<span class="da-tag da-tag--crit">CRIT</span>{{else}}{{this.critChance}}%{{/if}}</td>
               <td class="da-num">{{this.avgHit}}</td>
-              <td>
-                <input
-                  class="da-entry-count"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value="{{this.count}}"
-                  data-entry-id="{{this.id}}"
-                >
-              </td>
+              {{> da-count-cell this}}
               <td class="da-num da-dpr">{{this.dpr}}</td>
-              <td class="da-mono">{{this.minDmg}}–{{this.maxDmg}}</td>
+              <td class="da-mono da-range">{{this.minDmg}}–{{this.maxDmg}}</td>
             </tr>
           {{/each}}
         </tbody>

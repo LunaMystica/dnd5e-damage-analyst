@@ -1,15 +1,19 @@
 /* styles/damage-analyst.css */
 
-/* ── Sidebar button ── */
-#damage-analyst-sidebar-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35em;
-  font-size: 0.8rem;
-  padding: 2px 8px;
-  white-space: nowrap;
+/* ── Theme tokens (scoped to the dialog) ── */
+.da-dialog {
+  --da-accent: #5ea3ff;
+  --da-accent-strong: #7cc8ff;
+  --da-crit: #ffb347;
+  --da-good: #69d27d;
+  --da-border: rgba(127, 127, 127, 0.28);
+  --da-border-soft: rgba(127, 127, 127, 0.16);
+  --da-surface: rgba(127, 127, 127, 0.07);
+  --da-surface-2: rgba(127, 127, 127, 0.12);
+  --da-radius: 8px;
 }
 
+/* ── Window shell ── */
 #damage-analyst-dialog,
 #damage-analyst-dialog .window-content {
   height: 100%;
@@ -22,12 +26,11 @@
   overflow: hidden;
 }
 
-/* ── Dialog shell ── */
 .da-dialog {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 12px 12px;
+  gap: 10px;
+  padding: 12px 14px 14px;
   font-size: 0.85rem;
   width: 100%;
   max-width: 100%;
@@ -37,51 +40,241 @@
   margin: 0;
 }
 
-/* ── Controls strip ── */
+/* ── Controls ── */
 .da-controls {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  gap: 10px;
+  padding: 12px;
+  background: var(--da-surface);
+  border-radius: var(--da-radius);
+  border: 1px solid var(--da-border);
   flex: 0 0 auto;
 }
 
 .da-control-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.da-control-row label {
+.da-control-row--group {
+  align-items: flex-start;
+  padding-top: 10px;
+  border-top: 1px dashed var(--da-border-soft);
+}
+
+.da-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.da-field--grow {
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+.da-field label,
+.da-group-label {
   font-weight: 600;
   white-space: nowrap;
-  min-width: 56px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.da-label-spaced {
-  margin-left: 12px;
+.da-group-label {
+  min-width: 92px;
+  padding-top: 5px;
 }
 
-.da-control-row select {
+.da-field--grow select {
   flex: 1;
   min-width: 160px;
 }
 
 .da-control-row input[type="number"] {
-  width: 60px;
+  width: 62px;
   text-align: center;
 }
 
 .da-unit {
-  color: var(--color-text-dark-secondary, #888);
+  color: var(--color-text-dark-secondary, #999);
   font-size: 0.8rem;
 }
 
-/* ── Tabs ── */
+/* Force-crit checkbox */
+.da-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--da-border);
+  background: var(--da-surface);
+}
+
+.da-check input { margin: 0; }
+.da-check i { color: var(--da-crit); }
+.da-check:has(input:checked) {
+  border-color: var(--da-crit);
+  background: color-mix(in srgb, var(--da-crit) 16%, transparent);
+}
+
+/* Inline variant (does not push to the right; uses the accent colour) */
+.da-check--inline { margin-left: 0; }
+.da-check--inline i { color: var(--da-accent-strong); }
+.da-check--inline:has(input:checked) {
+  border-color: color-mix(in srgb, var(--da-accent) 55%, var(--da-border));
+  background: color-mix(in srgb, var(--da-accent) 14%, transparent);
+}
+
+/* Buttons */
+.da-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--da-border);
+  background: var(--da-surface-2);
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 600;
+  flex: 0 0 auto;
+  line-height: 1.4;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.da-btn:hover { background: var(--da-surface); }
+.da-btn--primary {
+  border-color: color-mix(in srgb, var(--da-accent) 55%, var(--da-border));
+  color: var(--da-accent-strong);
+}
+.da-btn--primary:hover {
+  background: color-mix(in srgb, var(--da-accent) 16%, transparent);
+}
+.da-btn--subtle {
+  font-weight: 500;
+  padding: 4px 10px;
+  opacity: 0.85;
+}
+.da-btn:disabled,
+.da-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Square icon-only button (e.g. open actor sheet) */
+.da-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  border: 1px solid var(--da-border);
+  background: var(--da-surface-2);
+  cursor: pointer;
+  color: inherit;
+}
+.da-icon-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--da-accent) 18%, transparent);
+}
+
+/* Temp-group chips */
+.da-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 160px;
+  min-height: 30px;
+}
+
+.da-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--da-border);
+  background: var(--da-surface-2);
+  font-size: 0.8rem;
+}
+.da-chip .da-icon { width: 18px; height: 18px; border-radius: 50%; }
+.da-chip-name { font-weight: 600; }
+
+.da-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  padding: 0;
+}
+.da-chip-remove:hover {
+  opacity: 1;
+  background: color-mix(in srgb, red 35%, transparent);
+}
+
+.da-temp-add {
+  flex: 0 0 auto;
+  max-width: 160px;
+}
+
+.da-hint {
+  color: var(--color-text-dark-secondary, #999);
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+/* ── Member tabs (group / temp-group actors) ── */
+.da-hidden { display: none !important; }
+
+.da-member-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 0 8px;
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid var(--da-border-soft);
+  flex: 0 0 auto;
+}
+
+.da-member-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--da-border-soft);
+  background: var(--da-surface);
+}
+.da-member-tab:hover { background: var(--da-surface-2); }
+.da-member-tab.active {
+  border-color: color-mix(in srgb, var(--da-accent) 55%, var(--da-border));
+  color: var(--da-accent-strong) !important;
+  background: color-mix(in srgb, var(--da-accent) 14%, transparent);
+}
+.da-member-tab .da-icon { width: 20px; height: 20px; border-radius: 50%; }
+
+/* ── Category tabs ── */
 .da-dialog .sheet-tabs.tabs {
   display: flex;
   align-items: stretch;
@@ -99,75 +292,79 @@
   justify-content: center;
   gap: 6px;
   min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  padding: 0 14px;
+  border: 1px solid var(--da-border);
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--da-surface);
   box-shadow: none;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease;
+  font-weight: 600;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
-
-.da-dialog .sheet-tabs.tabs a:hover {
-  background: rgba(0, 0, 0, 0.08);
-}
-
+.da-dialog .sheet-tabs.tabs a:hover { background: var(--da-surface-2); }
 .da-dialog .sheet-tabs.tabs a.active {
-  background: rgba(0, 0, 0, 0.12);
-  border-color: rgba(0, 0, 0, 0.24);
-  color: #69d27d;
+  background: color-mix(in srgb, var(--da-good) 14%, transparent);
+  border-color: color-mix(in srgb, var(--da-good) 55%, var(--da-border));
+  color: var(--da-good);
   text-shadow: none;
 }
+.da-dialog .sheet-tabs.tabs a i { margin: 0; }
 
-.da-dialog .sheet-tabs.tabs a i {
-  margin: 0;
-}
-
-/* ── Tab panels ── */
+/* ── Panels ── */
 .da-panel {
   display: none;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.02);
-  padding: 10px;
+  border: 1px solid var(--da-border);
+  border-radius: var(--da-radius);
+  background: var(--da-surface);
+  padding: 0;
 }
-
-.da-panel.active {
-  display: flex;
-  flex-direction: column;
-}
+.da-panel.active { display: flex; flex-direction: column; }
 
 .da-table-wrap {
-  overflow-x: auto;
-  overflow-y: auto;
+  overflow: auto;
   min-height: 0;
   flex: 1 1 auto;
 }
 
-.da-panel .da-empty {
-  margin: auto 0;
-}
+.da-panel .da-empty { margin: auto 0; }
 
+/* ── Summary bar (sticky) ── */
 .da-summary {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 8px 18px;
   align-items: center;
-  margin-bottom: 10px;
-  padding: 8px 10px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.04);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--da-border);
+  background: var(--da-surface-2);
+  backdrop-filter: blur(2px);
 }
 
-.da-summary .da-mono {
-  color: inherit;
+.da-summary-stat {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.2;
 }
+.da-summary-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+.da-summary-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.da-summary-stat--accent .da-summary-value { color: var(--da-accent-strong); }
+.da-summary-stat--formula { flex: 1 1 auto; min-width: 140px; }
+.da-summary-stat--formula .da-summary-value { font-size: 0.85rem; font-weight: 600; }
+.da-summary-empty { font-style: italic; opacity: 0.75; }
 
 /* ── Table ── */
 .da-table {
@@ -178,54 +375,54 @@
   table-layout: fixed;
 }
 
-.da-table thead tr {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.da-table th {
-  padding: 4px 8px;
+.da-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px 8px;
   text-align: center;
   font-weight: 600;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--da-surface-2);
+  border-bottom: 1px solid var(--da-border);
   white-space: nowrap;
 }
 
 .da-table td {
-  padding: 4px 8px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--da-border-soft);
   vertical-align: middle;
   text-align: center;
 }
+.da-table tbody tr:last-child td { border-bottom: none; }
+.da-table tbody tr:hover td { background: var(--da-surface); }
 
-.da-table tbody tr:last-child td {
-  border-bottom: none;
+/* Active rows (count > 0) stand out */
+.da-table tbody tr.da-row--active td {
+  background: color-mix(in srgb, var(--da-accent) 10%, transparent);
+}
+.da-table tbody tr.da-row--active:hover td {
+  background: color-mix(in srgb, var(--da-accent) 16%, transparent);
 }
 
-.da-table tbody tr:hover td {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-/* Column helpers */
-.da-table td.da-col-name {
-  text-align: left;
-}
+/* Name column */
+.da-table td.da-col-name,
+.da-table th.da-col-name { text-align: left; }
 
 .da-name-cell {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  width: 100%;
+  gap: 8px;
   min-width: 0;
 }
-
-.da-name-text {
+.da-name-stack {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  gap: 1px;
 }
-
 .da-open-item {
   appearance: none;
   border: none;
@@ -233,281 +430,145 @@
   padding: 0;
   margin: 0;
   min-width: 0;
-  color: #7cc8ff;
+  color: var(--da-accent-strong);
   font: inherit;
+  font-weight: 600;
   text-align: left;
   white-space: normal;
   overflow-wrap: anywhere;
-  word-break: break-word;
   cursor: pointer;
 }
-
 .da-open-item:hover,
-.da-open-item:focus-visible {
-  color: #a7ddff;
-  text-decoration: underline;
-  outline: none;
-}
+.da-open-item:focus-visible { text-decoration: underline; outline: none; }
 
-.da-table th.da-col-name {
-  display: table-cell;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: nowrap;
+.da-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  opacity: 0.75;
 }
+.da-owner-icon { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; }
 
-.da-table--combat th:nth-child(1),
-.da-table--combat td:nth-child(1) {
-  width: 27%;
+/* ── Stepper / count ── */
+.da-count-cell { white-space: nowrap; }
+.da-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--da-border);
+  border-radius: 6px;
+  overflow: hidden;
+  height: 26px;
 }
-
-.da-table--combat th:nth-child(2),
-.da-table--combat td:nth-child(2) {
-  width: 11%;
+.da-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  border: none;
+  background: var(--da-surface-2);
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  font-size: 0.7rem;
+  line-height: 1;
 }
-
-.da-table--combat th:nth-child(3),
-.da-table--combat td:nth-child(3) {
-  width: 11%;
-}
-
-.da-table--combat th:nth-child(4),
-.da-table--combat td:nth-child(4) {
-  width: 15%;
-}
-
-.da-table--combat th:nth-child(5),
-.da-table--combat td:nth-child(5) {
-  width: 10%;
-}
-
-.da-table--combat th:nth-child(6),
-.da-table--combat td:nth-child(6) {
-  width: 10%;
-}
-
-.da-table--combat th:nth-child(7),
-.da-table--combat td:nth-child(7) {
-  width: 8%;
-}
-
-.da-table--combat th:nth-child(8),
-.da-table--combat td:nth-child(8) {
-  width: 7%;
-}
-
-.da-table--combat th:nth-child(9),
-.da-table--combat td:nth-child(9) {
-  width: 11%;
-}
-
-.da-table--weapons th:nth-child(1),
-.da-table--weapons td:nth-child(1) {
-  width: 24%;
-}
-
-.da-table--weapons th:nth-child(2),
-.da-table--weapons td:nth-child(2) {
-  width: 10%;
-}
-
-.da-table--weapons th:nth-child(3),
-.da-table--weapons td:nth-child(3) {
-  width: 10%;
-}
-
-.da-table--weapons th:nth-child(4),
-.da-table--weapons td:nth-child(4) {
-  width: 14%;
-}
-
-.da-table--weapons th:nth-child(5),
-.da-table--weapons td:nth-child(5) {
-  width: 8%;
-}
-
-.da-table--weapons th:nth-child(6),
-.da-table--weapons td:nth-child(6) {
-  width: 8%;
-}
-
-.da-table--weapons th:nth-child(7),
-.da-table--weapons td:nth-child(7) {
-  width: 8%;
-}
-
-.da-table--weapons th:nth-child(8),
-.da-table--weapons td:nth-child(8) {
-  width: 8%;
-}
-
-.da-table--weapons th:nth-child(9),
-.da-table--weapons td:nth-child(9) {
-  width: 8%;
-}
-
-.da-table--weapons th:nth-child(10),
-.da-table--weapons td:nth-child(10) {
-  width: 12%;
-}
-
-.da-table--spells th:nth-child(1),
-.da-table--spells td:nth-child(1) {
-  width: 21%;
-}
-
-.da-table--spells th:nth-child(2),
-.da-table--spells td:nth-child(2) {
-  width: 10%;
-}
-
-.da-table--spells th:nth-child(3),
-.da-table--spells td:nth-child(3) {
-  width: 8%;
-}
-
-.da-table--spells th:nth-child(4),
-.da-table--spells td:nth-child(4) {
-  width: 13%;
-}
-
-.da-table--spells th:nth-child(5),
-.da-table--spells td:nth-child(5) {
-  width: 11%;
-}
-
-.da-table--spells th:nth-child(6),
-.da-table--spells td:nth-child(6) {
-  width: 6%;
-}
-
-.da-table--spells th:nth-child(7),
-.da-table--spells td:nth-child(7) {
-  width: 7%;
-}
-
-.da-table--spells th:nth-child(8),
-.da-table--spells td:nth-child(8) {
-  width: 7%;
-}
-
-.da-table--spells th:nth-child(9),
-.da-table--spells td:nth-child(9) {
-  width: 5%;
-}
-
-.da-table--spells th:nth-child(10),
-.da-table--spells td:nth-child(10) {
-  width: 5%;
-}
-
-.da-table--spells th:nth-child(11),
-.da-table--spells td:nth-child(11) {
-  width: 7%;
-}
-
-.da-table--healing th:nth-child(1),
-.da-table--healing td:nth-child(1) {
-  width: 26%;
-}
-
-.da-table--healing th:nth-child(2),
-.da-table--healing td:nth-child(2) {
-  width: 12%;
-}
-
-.da-table--healing th:nth-child(3),
-.da-table--healing td:nth-child(3) {
-  width: 12%;
-}
-
-.da-table--healing th:nth-child(4),
-.da-table--healing td:nth-child(4) {
-  width: 16%;
-}
-
-.da-table--healing th:nth-child(5),
-.da-table--healing td:nth-child(5) {
- width: 10%;
-}
-
-.da-table--healing th:nth-child(6),
-.da-table--healing td:nth-child(6) {
-  width: 8%;
-}
-
-.da-table--healing th:nth-child(7),
-.da-table--healing td:nth-child(7) {
-  width: 9%;
-}
-
-.da-table--healing th:nth-child(8),
-.da-table--healing td:nth-child(8) {
-  width: 12%;
-}
-
-.da-type {
-  text-transform: capitalize;
-}
-
-.da-entry-count {
-  width: 56px;
-  min-width: 56px;
+.da-step:hover { background: color-mix(in srgb, var(--da-accent) 22%, transparent); }
+.da-stepper .da-entry-count {
+  width: 40px;
+  min-width: 40px;
+  border: none;
+  border-left: 1px solid var(--da-border-soft);
+  border-right: 1px solid var(--da-border-soft);
+  border-radius: 0;
   text-align: center;
-}
-
-.da-num {
-  text-align: right;
+  background: transparent;
+  -moz-appearance: textfield;
   font-variant-numeric: tabular-nums;
 }
+.da-entry-count::-webkit-outer-spin-button,
+.da-entry-count::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-.da-dpr {
-  font-weight: 700;
-  color: #fff;
-}
-
+/* ── Cell helpers ── */
+.da-type { text-transform: capitalize; }
+.da-num { text-align: center; font-variant-numeric: tabular-nums; }
+.da-dpr { font-weight: 700; color: var(--da-accent-strong); }
 .da-mono {
   font-family: var(--font-mono, monospace);
   font-size: 0.77rem;
-  color: #fff;
 }
+.da-range { opacity: 0.8; }
 
 .da-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
   object-fit: cover;
   flex-shrink: 0;
 }
 
-/* "no damage on save" tag */
+/* Tags */
 .da-tag {
-  font-size: 0.7rem;
-  background: rgba(0, 0, 0, 0.1);
+  font-size: 0.68rem;
+  background: var(--da-surface-2);
   border-radius: 3px;
-  padding: 0 3px;
+  padding: 1px 4px;
   font-style: italic;
 }
-
-/* ── Member tabs (group actors) ── */
-.da-hidden {
-  display: none !important;
-}
-
-.da-member-tabs {
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  margin-bottom: 2px;
-}
-
-.da-member-tabs a.active {
-  color: #7cc8ff !important;
+.da-tag--crit {
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--da-crit);
+  background: color-mix(in srgb, var(--da-crit) 18%, transparent);
 }
 
 /* ── Empty states ── */
 .da-empty {
-  padding: 12px;
+  padding: 16px;
   text-align: center;
-  color: var(--color-text-dark-secondary, #888);
+  color: var(--color-text-dark-secondary, #999);
   font-style: italic;
 }
+
+/* Attack / spell distance range cell */
+.da-range-dist { white-space: nowrap; }
+
+/* ── Column widths ── */
+/* Weapons: Name Use Range Type Formula Hit Crit Avg Count DPR Min–Max */
+.da-table--weapons td:nth-child(1), .da-table--weapons th:nth-child(1) { width: 22%; }
+.da-table--weapons td:nth-child(2), .da-table--weapons th:nth-child(2) { width: 9%; }
+.da-table--weapons td:nth-child(3), .da-table--weapons th:nth-child(3) { width: 9%; }
+.da-table--weapons td:nth-child(4), .da-table--weapons th:nth-child(4) { width: 9%; }
+.da-table--weapons td:nth-child(5), .da-table--weapons th:nth-child(5) { width: 12%; }
+.da-table--weapons td:nth-child(6), .da-table--weapons th:nth-child(6) { width: 7%; }
+.da-table--weapons td:nth-child(7), .da-table--weapons th:nth-child(7) { width: 7%; }
+.da-table--weapons td:nth-child(8), .da-table--weapons th:nth-child(8) { width: 8%; }
+.da-table--weapons td:nth-child(9), .da-table--weapons th:nth-child(9) { width: 96px; }
+.da-table--weapons td:nth-child(10), .da-table--weapons th:nth-child(10) { width: 7%; }
+.da-table--weapons td:nth-child(11), .da-table--weapons th:nth-child(11) { width: 10%; }
+
+/* Spells / Features: Name Use Range Type Formula DC/Hit Crit AvgFail AvgSave Count DPR Min–Max */
+.da-table--spells td:nth-child(1), .da-table--spells th:nth-child(1) { width: 19%; }
+.da-table--spells td:nth-child(2), .da-table--spells th:nth-child(2) { width: 8%; }
+.da-table--spells td:nth-child(3), .da-table--spells th:nth-child(3) { width: 8%; }
+.da-table--spells td:nth-child(4), .da-table--spells th:nth-child(4) { width: 8%; }
+.da-table--spells td:nth-child(5), .da-table--spells th:nth-child(5) { width: 11%; }
+.da-table--spells td:nth-child(6), .da-table--spells th:nth-child(6) { width: 10%; }
+.da-table--spells td:nth-child(7), .da-table--spells th:nth-child(7) { width: 6%; }
+.da-table--spells td:nth-child(8), .da-table--spells th:nth-child(8) { width: 7%; }
+.da-table--spells td:nth-child(9), .da-table--spells th:nth-child(9) { width: 7%; }
+.da-table--spells td:nth-child(10), .da-table--spells th:nth-child(10) { width: 96px; }
+.da-table--spells td:nth-child(11), .da-table--spells th:nth-child(11) { width: 6%; }
+.da-table--spells td:nth-child(12), .da-table--spells th:nth-child(12) { width: 8%; }
+
+/* Healing: Name Use Range Type Formula Avg Count TotalAvg Min–Max */
+.da-table--healing td:nth-child(1), .da-table--healing th:nth-child(1) { width: 24%; }
+.da-table--healing td:nth-child(2), .da-table--healing th:nth-child(2) { width: 11%; }
+.da-table--healing td:nth-child(3), .da-table--healing th:nth-child(3) { width: 11%; }
+.da-table--healing td:nth-child(4), .da-table--healing th:nth-child(4) { width: 11%; }
+.da-table--healing td:nth-child(5), .da-table--healing th:nth-child(5) { width: 15%; }
+.da-table--healing td:nth-child(6), .da-table--healing th:nth-child(6) { width: 9%; }
+.da-table--healing td:nth-child(7), .da-table--healing th:nth-child(7) { width: 96px; }
+.da-table--healing td:nth-child(8), .da-table--healing th:nth-child(8) { width: 9%; }
+.da-table--healing td:nth-child(9), .da-table--healing th:nth-child(9) { width: 10%; }

@@ -12,6 +12,16 @@ Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
   registerHandlebarsHelpers();
   console.log(`${MODULE_ID} | Handlebars helpers registered`);
+
+  // Public API — used by exported macros to reopen the dialog with a preset state.
+  const module = game.modules.get(MODULE_ID);
+  if (module) {
+    module.api = {
+      open: (actor) => AnalystDialog.open(actor),
+      openWithState: (state) => AnalystDialog.openWithState(state),
+      AnalystDialog,
+    };
+  }
 });
 
 // ---------------------------------------------------------------------------
