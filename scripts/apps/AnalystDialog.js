@@ -297,6 +297,40 @@ export class AnalystDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     return dialog;
   }
 
+  /**
+   * Open the dialog using the currently controlled canvas tokens. Two or more
+   * accessible actors become a temporary group; a single one opens directly.
+   * @returns {AnalystDialog}
+   */
+  static openFromSelectedTokens() {
+    const tokens = canvas?.tokens?.controlled ?? [];
+    const ids = [];
+    const seen = new Set();
+    for (const token of tokens) {
+      const actor = token.actor;
+      if (actor && AnalystDialog.#canAccessActor(actor) && !seen.has(actor.id)) {
+        seen.add(actor.id);
+        ids.push(actor.id);
+      }
+    }
+
+    AnalystDialog.#log("openFromSelectedTokens", { tokenCount: tokens.length, actorIds: ids });
+
+    if (!ids.length) {
+      ui.notifications?.warn(
+        "Damage Analyst: select one or more tokens to analyse.",
+      );
+      return AnalystDialog.open();
+    }
+    if (ids.length === 1) {
+      return AnalystDialog.openWithState({ actorId: ids[0], tempGroupIds: [] });
+    }
+    return AnalystDialog.openWithState({
+      tempGroupIds: ids,
+      activeMemberId: "all",
+    });
+  }
+
   #applyState(state = {}) {
     if (state.actorId) {
       const actor = game.actors.get(state.actorId);
