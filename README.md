@@ -18,6 +18,7 @@ Set a target AC, crit threshold, and save DC, then assign use counts to weapons,
 - **NPC toggle** — by default the actor selector lists player characters and groups; tick **NPCs** to also pick monsters/NPCs, listed in a separate group.
 - **Activity names toggle** — append each activity's name to its item (e.g. _Breath Weapon: Fire_). Defaults on for the Features tab; tick it to force activity names on every tab.
 - **Range column** — shows each entry's reach/range: _Self_, _Touch_, _Melee_ (5 ft, or 10 ft with the Reach property), or the listed distance such as _60 ft_ or _20/60 ft_.
+- **Token Controls button** — a chart button in the Token tools opens the analyst for the currently selected token(s); selecting two or more turns them into a temporary group automatically.
 - **Open actor & Reset** — jump straight to the selected actor's sheet, or reset that actor's (or the whole group's) use counts in one click.
 - **Group & temporary-group support** — analyze a saved group actor, or build an ad-hoc **temporary group** from any actors you can access. Per-member tabs plus an **All** tab that combines totals; in the All view each row shows which actor it belongs to. Once a temporary group has more than one member, a **Save as group** button (and the Open-actor button) offers to persist it as a real Group actor.
 - **Export as a macro** — save the current actor/group, AC, crit, save DC, force-crit, and all use counts into a script macro that reopens the dialog pre-configured. Great for recurring encounters.
@@ -45,7 +46,7 @@ Or download `module.zip` from the [latest release](https://github.com/LunaMystic
 ## Usage
 
 1. Enable the module in **Manage Modules** for your world.
-2. Open an actor sheet and click the **Damage Analyst** header button.
+2. Open an actor sheet and click the **Damage Analyst** header button, or select one or more tokens on the canvas and click the chart button in the **Token Controls** (multiple tokens open as a temporary group).
 3. Set the target AC, crit threshold, and save DC. Tick **Force crits** to model a guaranteed crit.
 4. Optionally add more actors under **Temp group** to analyze several at once — switch between members and the combined **All** tab.
 5. Use the `−`/`+` steppers to set how often each weapon, spell, or cantrip is used per round.
